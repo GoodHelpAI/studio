@@ -36,8 +36,7 @@ const steps = [
   { id: 7, title: 'Review & Submit', component: ReviewStep, fields: [] },
 ];
 
-// TODO: Replace this with your actual n8n webhook URL
-const N8N_WEBHOOK_URL = 'YOUR_N8N_WEBHOOK_URL_HERE'; 
+const N8N_WEBHOOK_URL = 'https://goodhelpai-n8n.onrender.com/webhook-test/06703c6e-8f0a-415c-b55b-99f33003db26'; 
 
 function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
   let messages: string[] = [];
@@ -147,7 +146,7 @@ export function PropertyForm() {
     setIsSubmitting(true);
     console.log("Property Data JSON to be sent:", JSON.stringify(data, null, 2));
 
-    if (N8N_WEBHOOK_URL === 'YOUR_N8N_WEBHOOK_URL_HERE') {
+    if (N8N_WEBHOOK_URL === 'YOUR_N8N_WEBHOOK_URL_HERE' || !N8N_WEBHOOK_URL) { // Added check for empty URL
         toast({
             title: "Webhook URL Not Configured",
             description: "Please configure the n8n webhook URL in src/components/property-form.tsx.",
@@ -168,8 +167,8 @@ export function PropertyForm() {
         });
 
         if (response.ok) {
-            const responseData = await response.json(); // n8n usually returns a success message
-            console.log('Successfully sent to n8n:', responseData);
+            //const responseData = await response.json(); // n8n might not send JSON back if "Respond Immediately"
+            // console.log('Successfully sent to n8n:', responseData);
             toast({
                 title: "Property Submitted!",
                 description: "Property data successfully sent to n8n workflow.",
@@ -187,9 +186,13 @@ export function PropertyForm() {
         }
     } catch (error) {
         console.error('Error submitting form to n8n:', error);
+        let errorMessage = "An error occurred while trying to send data to n8n.";
+        if (error instanceof Error) {
+            errorMessage += ` Details: ${error.message}`;
+        }
         toast({
             title: "Network Error",
-            description: "An error occurred while trying to send data to n8n. Please check your connection or the webhook URL.",
+            description: `${errorMessage} Please check your connection or the webhook URL.`,
             variant: "destructive",
             duration: 9000,
         });
@@ -209,7 +212,8 @@ export function PropertyForm() {
         clearErrors(`rooms.${index}.garageLength` as const);
         clearErrors(`rooms.${index}.garageWidth` as const);
         clearErrors(`rooms.${index}.roomType` as const);
-        // Add other room-specific fields if they have manual error potential
+        clearErrors(`rooms.${index}.length` as const);
+        clearErrors(`rooms.${index}.width` as const);
       });
     } else if (currentStepConfig.title === 'Property Details') {
         clearErrors('hoaDues');
@@ -248,6 +252,16 @@ export function PropertyForm() {
             setError(`rooms.${index}.roomType` as const, { type: 'manual', message: 'Room type is required.' });
             customValidationPassed = false;
         }
+        // Validate dimensions only if roomType is selected (prevents error on empty room before type selection)
+        if (room.roomType && (room.length === undefined || room.length <= 0)) {
+             setError(`rooms.${index}.length` as const, { type: 'manual', message: 'Positive length required.' });
+             customValidationPassed = false;
+        }
+        if (room.roomType && (room.width === undefined || room.width <= 0)) {
+            setError(`rooms.${index}.width` as const, { type: 'manual', message: 'Positive width required.' });
+            customValidationPassed = false;
+        }
+
         if (room.roomType === 'garage') {
           if (room.garageCarCount && room.garageCarCount !== 'none' && room.garageCarCount !== '') {
             if (room.garageLength === undefined || room.garageLength <=0) {
@@ -269,18 +283,16 @@ export function PropertyForm() {
         setCurrentStep((prev) => prev + 1);
       }
     } else {
-      // Collect all error messages, including from Zod and manual setError calls
       const collectedMessages = getAllErrorMessages(methods.formState.errors);
       let toastDescription = "Please correct the errors on the current step:";
       if (collectedMessages.length > 0) {
-        // Using <pre> to respect newlines in the toast
         toastDescription += "\n\n- " + collectedMessages.join('\n- ');
       } else if (!isValid && currentStepFields.length > 0) {
-        // Fallback if getAllErrorMessages somehow misses something but trigger failed
         toastDescription += "\n\nPlease review all fields for missing or invalid entries.";
       } else if (!customValidationPassed) {
-        // Fallback for custom validation errors not picked by Zod in getAllErrorMessages
-        toastDescription += "\n\nPlease check highlighted fields for custom validation issues.";
+         // If custom validation failed, getAllErrorMessages should pick up setError calls.
+         // This part might be redundant if getAllErrorMessages works perfectly.
+         // toastDescription += "\n\nPlease check highlighted fields for custom validation issues.";
       }
 
 
