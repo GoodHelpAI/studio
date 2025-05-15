@@ -2,12 +2,13 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image'; // Added Image import
 import { useForm, FormProvider, type SubmitHandler, type FieldPath } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { propertySchema, type PropertyFormData } from '@/lib/schema';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress'; // Added Progress import
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, Send, Check, Home, ListChecks, LayoutGrid, Car, Layers, Wrench, FileCheck2, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -22,27 +23,28 @@ import { ReviewStep } from './property-form/review-step';
 
 interface StepConfig {
   id: number;
-  title: string;
+  title: string; // Original descriptive titles for textual display
+  shortTitle: string; // New short titles for breadcrumbs (if used again)
   component: React.FC;
   fields: FieldPath<PropertyFormData>[];
-  // icon property removed
+  icon?: LucideIcon; // Icon for breadcrumbs (if used again)
 }
 
 const steps: StepConfig[] = [
-  { id: 1, title: 'Basic Information', component: BasicInfoStep, fields: ['address', 'city', 'state', 'zip', 'propertyType'] },
-  { id: 2, title: 'Property Details', component: PropertyDetailsStep, fields: ['overallBedrooms', 'overallBathrooms', 'hasHOA', 'hoaDues'] },
-  { id: 3, title: 'Room Specifications', component: RoomsStep, fields: ['rooms'] },
-  { id: 4, title: 'Carport & RV Pad', component: GarageCarportStep, fields: ['carportPresent', 'carportLength', 'carportWidth', 'rvPadPresent', 'rvPadLength', 'rvPadWidth'] },
-  { id: 5, title: 'Flooring', component: FlooringStep, fields: ['flooringTypes', 'otherFlooringType'] },
-  { id: 6, title: 'Additional Details & Features', component: AdditionalDetailsStep, fields: [
+  { id: 1, title: 'Basic Information', shortTitle: 'Basic Info', component: BasicInfoStep, fields: ['address', 'city', 'state', 'zip', 'propertyType'], icon: Home },
+  { id: 2, title: 'Property Details', shortTitle: 'Prop Details', component: PropertyDetailsStep, fields: ['overallBedrooms', 'overallBathrooms', 'hasHOA', 'hoaDues'], icon: ListChecks },
+  { id: 3, title: 'Room Specifications', shortTitle: 'Room Specs', component: RoomsStep, fields: ['rooms'], icon: LayoutGrid },
+  { id: 4, title: 'Carport & RV Pad', shortTitle: 'Parking Pads', component: GarageCarportStep, fields: ['carportPresent', 'carportLength', 'carportWidth', 'rvPadPresent', 'rvPadLength', 'rvPadWidth'], icon: Car },
+  { id: 5, title: 'Flooring', shortTitle: 'Flooring', component: FlooringStep, fields: ['flooringTypes', 'otherFlooringType'], icon: Layers },
+  { id: 6, title: 'Additional Details & Features', shortTitle: 'Extra Details', component: AdditionalDetailsStep, fields: [
     'patios', 'sheds', 'hasDeck', 'fenceHeight', 'fenceMaterial', 'fenceStyle',
     'fireplaceCount', 'fireplaceTypeWood', 'fireplaceTypeGas', 'fireplaceFeaturesLogs', 'fireplaceFeaturesElectricStarter', 'fireplaceVaultedCeilings',
     'programmableThermostat', 'waterHeater', 'acType', 'acOtherType', 'heatType',
     'hasPool', 'hasHotTub', 'hasSprinklers', 'hasAlarm', 'smokeDetectorCount',
     'backyardFeatures', 'communityAmenities',
     'description'
-  ] },
-  { id: 7, title: 'Review & Submit', component: ReviewStep, fields: [] },
+  ], icon: Wrench },
+  { id: 7, title: 'Review & Submit', shortTitle: 'Review Form', component: ReviewStep, fields: [], icon: FileCheck2 },
 ];
 
 const N8N_WEBHOOK_URL = 'https://goodhelpai-n8n.onrender.com/webhook-test/06703c6e-8f0a-415c-b55b-99f33003db26';
@@ -60,12 +62,17 @@ function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
       if (errorField) {
         if (typeof errorField.message === 'string') {
           let fieldName = currentPath;
+          // Convert camelCase or dot.notation to readable format
+          // Example: rooms.0.roomType -> Room 1 Room type
+          // Example: kitchenDetails.walkInPantry -> Kitchen details Walk in pantry
           if (fieldName.startsWith('rooms.')) {
             fieldName = fieldName.replace(/^rooms\.(\d+)\.(.*)$/, (match, roomIndex, field) => {
               let readableField = field.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim();
               readableField = readableField.charAt(0).toUpperCase() + readableField.slice(1);
               if (readableField.startsWith('Kitchen details.')) {
                 readableField = readableField.replace('Kitchen details.', 'Kitchen ');
+              } else if (readableField.startsWith('Garage ')){
+                 readableField = readableField.replace('Garage ', ''); // Avoid "Garage Garage Length"
               }
               return `Room ${parseInt(roomIndex) + 1} ${readableField}`;
             });
@@ -73,40 +80,44 @@ function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
              fieldName = fieldName.replace(/^(patios|sheds)\.(\d+)\.(.*)$/, (match, type, index, field) => {
               let readableField = field.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim();
               readableField = readableField.charAt(0).toUpperCase() + readableField.slice(1);
-              const itemType = type.charAt(0).toUpperCase() + type.slice(1, -1);
+              const itemType = type.charAt(0).toUpperCase() + type.slice(1, -1); // Patio or Shed
               return `${itemType} ${parseInt(index) + 1} ${readableField}`;
             });
           } else {
-             fieldName = fieldName.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim();
-             fieldName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+             // Generic camelCase to Title Case, with special handling for HOA
+             if (fieldName === 'hoaDues') fieldName = 'HOA Dues';
+             else if (fieldName === 'acOtherType') fieldName = 'Other A/C Type';
+             else if (fieldName === 'otherFlooringType') fieldName = 'Other Flooring Type';
+             else {
+                fieldName = fieldName.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim();
+                fieldName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+             }
           }
           messages.push(`${fieldName}: ${errorField.message}`);
         } else if (Array.isArray(errorField)) {
           errorField.forEach((item, index) => {
-            if (item) {
+            if (item) { // Ensure item is not null/undefined
               messages = messages.concat(getAllErrorMessages(item, `${currentPath}.${index}`));
             }
           });
-        } else if (typeof errorField === 'object' && !errorField.type ) {
+        } else if (typeof errorField === 'object' && !errorField.type ) { // Check if it's a nested error object
           messages = messages.concat(getAllErrorMessages(errorField, currentPath));
         }
       }
     }
   }
-  return messages.filter(Boolean);
+  return messages.filter(Boolean); // Remove any undefined/null messages
 }
 
-// HorizontalBreadcrumb component removed
 
 export function PropertyForm() {
   const [currentStep, setCurrentStep] = useState(1);
-  // completedSteps state removed
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const methods = useForm<PropertyFormData>({
     resolver: zodResolver(propertySchema),
-    mode: 'onTouched',
+    mode: 'onTouched', // Validate on blur
     defaultValues: {
       address: '',
       city: '',
@@ -186,6 +197,9 @@ export function PropertyForm() {
                 description: "Property data successfully sent to n8n workflow.",
                 variant: "default",
             });
+            // Potentially reset form or redirect here
+            // methods.reset(); // Example: reset form
+            // setCurrentStep(1); // Example: go back to first step
         } else {
             const errorData = await response.text();
             console.error('Failed to send to n8n:', response.status, errorData);
@@ -217,30 +231,23 @@ export function PropertyForm() {
     const currentStepConfig = steps[currentStep - 1];
     const currentStepFields = currentStepConfig.fields as FieldPath<PropertyFormData>[];
 
-    Object.keys(errors).forEach(key => {
-      const fieldKey = key as FieldPath<PropertyFormData>;
-      if (currentStepFields.includes(fieldKey) ||
-          (currentStepConfig.title === 'Property Details' && fieldKey === 'hoaDues') ||
-          (currentStepConfig.title === 'Flooring' && fieldKey === 'otherFlooringType') ||
-          (currentStepConfig.title === 'Additional Details & Features' && fieldKey === 'acOtherType') ||
-          (currentStepConfig.title === 'Room Specifications' && fieldKey.startsWith('rooms.'))
-      ) {
-        clearErrors(fieldKey);
-      }
-    });
-
-    const rooms = getValues('rooms');
-    if (currentStepConfig.title === 'Room Specifications' && rooms) {
-      rooms.forEach((_room, index) => {
-        clearErrors(`rooms.${index}.roomType` as const);
-        clearErrors(`rooms.${index}.length` as const);
-        clearErrors(`rooms.${index}.width` as const);
-        clearErrors(`rooms.${index}.garageLength` as const);
-        clearErrors(`rooms.${index}.garageWidth` as const);
-        clearErrors(`rooms.${index}.garageCarCount` as const);
-        if (getValues(`rooms.${index}.kitchenDetails`)) {
-            Object.keys(getValues(`rooms.${index}.kitchenDetails`)!).forEach(k => {
-                clearErrors(`rooms.${index}.kitchenDetails.${k}` as any);
+    // Clear existing errors for the current step's fields to avoid stale messages
+    currentStepFields.forEach(field => clearErrors(field));
+    if (currentStepConfig.title === 'Property Details') clearErrors('hoaDues');
+    if (currentStepConfig.title === 'Flooring') clearErrors('otherFlooringType');
+    if (currentStepConfig.title === 'Additional Details & Features') clearErrors('acOtherType');
+    if (currentStepConfig.title === 'Room Specifications' && getValues('rooms')) {
+      getValues('rooms').forEach((_room, index) => {
+        const roomPrefix = `rooms.${index}` as const;
+        clearErrors(`${roomPrefix}.roomType`);
+        clearErrors(`${roomPrefix}.length`);
+        clearErrors(`${roomPrefix}.width`);
+        clearErrors(`${roomPrefix}.garageLength`);
+        clearErrors(`${roomPrefix}.garageWidth`);
+        clearErrors(`${roomPrefix}.garageCarCount`);
+        if (getValues(`${roomPrefix}.kitchenDetails`)) {
+            Object.keys(getValues(`${roomPrefix}.kitchenDetails`)!).forEach(k => {
+                clearErrors(`${roomPrefix}.kitchenDetails.${k}` as any);
             });
         }
       });
@@ -249,6 +256,7 @@ export function PropertyForm() {
     const isValid = currentStepFields.length > 0 ? await trigger(currentStepFields, { shouldFocus: true }) : true;
 
     let customValidationPassed = true;
+    // Custom validation logic (e.g., for HOA, other flooring/AC, room specific logic)
     if (currentStepConfig.title === 'Property Details') {
       if (getValues('hasHOA') && (getValues('hoaDues') === undefined || getValues('hoaDues') === null || getValues('hoaDues')! <= 0)) {
         setError('hoaDues', { type: 'manual', message: 'HOA dues are required if HOA is selected and must be positive.' });
@@ -261,36 +269,39 @@ export function PropertyForm() {
         customValidationPassed = false;
       }
     }
-     if (currentStepConfig.title === 'Additional Details & Features') { // Corrected title check
+    if (currentStepConfig.title === 'Additional Details & Features') {
       if (getValues('acType') === 'other' && (!getValues('acOtherType') || getValues('acOtherType')!.trim() === '')) {
         setError('acOtherType', {type: 'manual', message: 'Please specify other A/C type.'});
         customValidationPassed = false;
       }
     }
-    if (currentStepConfig.title === 'Room Specifications' && rooms) {
-      rooms.forEach((room, index) => {
+    if (currentStepConfig.title === 'Room Specifications' && getValues('rooms')) {
+      getValues('rooms').forEach((room, index) => {
+        const roomPrefix = `rooms.${index}` as const;
          if (!room.roomType || room.roomType.trim() === '') {
-            setError(`rooms.${index}.roomType` as const, { type: 'manual', message: 'Room type is required.' });
+            setError(`${roomPrefix}.roomType`, { type: 'manual', message: 'Room type is required.' });
             customValidationPassed = false;
         }
-        if (room.roomType && room.roomType !== 'garage') {
-            if ((room.length === undefined || room.length <= 0) && (room.roomType !== 'half_bathroom' && room.roomType !== 'bathroom') ){
-                 setError(`rooms.${index}.length` as const, { type: 'manual', message: 'Positive length required.' });
+        // Room dimension validation: positive length/width required unless it's a bathroom type
+        if (room.roomType && room.roomType !== 'garage' && room.roomType !== 'bathroom' && room.roomType !== 'half_bathroom') {
+            if (room.length === undefined || room.length <= 0) {
+                 setError(`${roomPrefix}.length`, { type: 'manual', message: 'Positive length required.' });
                  customValidationPassed = false;
             }
-            if ((room.width === undefined || room.width <= 0) && (room.roomType !== 'half_bathroom' && room.roomType !== 'bathroom') ) {
-                setError(`rooms.${index}.width` as const, { type: 'manual', message: 'Positive width required.' });
+            if (room.width === undefined || room.width <= 0 ) {
+                setError(`${roomPrefix}.width`, { type: 'manual', message: 'Positive width required.' });
                 customValidationPassed = false;
             }
         }
+        // Garage dimension validation: required if car count is specified
         if (room.roomType === 'garage') {
           if (room.garageCarCount && room.garageCarCount !== 'none' && room.garageCarCount !== '') {
             if (room.garageLength === undefined || room.garageLength <=0) {
-               setError(`rooms.${index}.garageLength` as const, { type: 'manual', message: 'Length required if car count specified.' });
+               setError(`${roomPrefix}.garageLength`, { type: 'manual', message: 'Length required if car count specified.' });
                customValidationPassed = false;
             }
             if (room.garageWidth === undefined || room.garageWidth <=0) {
-               setError(`rooms.${index}.garageWidth` as const, { type: 'manual', message: 'Width required if car count specified.' });
+               setError(`${roomPrefix}.garageWidth`, { type: 'manual', message: 'Width required if car count specified.' });
                customValidationPassed = false;
             }
           }
@@ -298,8 +309,8 @@ export function PropertyForm() {
       });
     }
 
+
     if (isValid && customValidationPassed) {
-      // setCompletedSteps(prev => new Set(prev).add(currentStep)); // Removed
       if (currentStep < steps.length) {
         setCurrentStep((prev) => prev + 1);
       }
@@ -312,7 +323,10 @@ export function PropertyForm() {
         toastDescription += "\n\nPlease review all fields for missing or invalid entries.";
       } else if (!customValidationPassed) {
          toastDescription += "\n\nPlease review the highlighted fields.";
+      } else {
+        toastDescription += "\n\nAn unknown validation error occurred.";
       }
+
 
       toast({
         title: "Validation Error",
@@ -329,8 +343,6 @@ export function PropertyForm() {
     }
   };
 
-  // handleBreadcrumbClick function removed
-
   const ActiveStepComponent = steps[currentStep - 1].component;
   const progressValue = (currentStep / steps.length) * 100;
 
@@ -341,7 +353,16 @@ export function PropertyForm() {
           <CardTitle
             className="text-2xl md:text-3xl text-center font-bold"
           >
-            <div style={{ color: '#8c1c19' }}>Cudd Realty</div>
+            <div className="flex justify-center mb-2">
+              <Image
+                src="/assets/cudd logo.webp"
+                alt="Cudd Realty Logo"
+                width={180} 
+                height={45}
+                className="object-contain"
+                data-ai-hint="company logo"
+              />
+            </div>
             <div style={{ color: '#8c1c19' }}>Measurement Form</div>
           </CardTitle>
           <div className="pt-4 text-center">
