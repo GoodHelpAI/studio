@@ -1,36 +1,74 @@
 
 "use client";
 
-import { useFormContext } from 'react-hook-form';
-import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { useFormContext, Controller } from 'react-hook-form';
+import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { XCircle } from 'lucide-react';
-import type { PropertyFormData } from '@/lib/schema';
-import { ROOM_TYPES, type RoomTypeOption } from '@/lib/constants';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { XCircle, Wind, PlugZap, ChefHat } from 'lucide-react';
+import type { PropertyFormData, KitchenDetails } from '@/lib/schema';
+import { ROOM_TYPES, type RoomTypeOption, YES_NO_NA_OPTIONS, FRIDGE_OPTIONS, RANGE_TYPE_OPTIONS, RANGE_OVEN_OPTIONS, COOKTOP_TYPE_OPTIONS, KITCHEN_COUNTERTOP_OPTIONS } from '@/lib/constants';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 interface RoomBlockProps {
   index: number;
   onRemove: (index: number) => void;
 }
 
-export function RoomBlock({ index, onRemove }: RoomBlockProps) {
-  const { control, watch } = useFormContext<PropertyFormData>();
-  const roomPathPrefix = `rooms.${index}` as const;
+const kitchenFeatureBooleanFields: (keyof KitchenDetails)[] = [
+  'island', 'raisedBar', 'eatInKitchen', 'graniteKTop', 'laminateKTop', 'corianKTop', 'tileKTop',
+  'walkInPantry', 'tileBacksplash', 'butlersPantry', 'cabinets36inch', 'cabinets42inch',
+  'ssAppliances', 'microwaveFlush', 'microwaveKTop', 'dishwasher', 'disposal',
+  'compactor', 'wineCooler', 'hoodAVent', 'outdoorGrill'
+];
 
-  // Watch the specific roomType field for dynamic icon update
-  const selectedRoomTypeId = watch(`${roomPathPrefix}.roomType`);
-  const IconComponent = ROOM_TYPES.find(rt => rt.id === selectedRoomTypeId)?.icon;
+export const formatKitchenFeatureLabel = (key: string) => {
+  return key
+    .replace(/([A-Z])/g, ' $1') // Add space before uppercase letters
+    .replace(/^./, str => str.toUpperCase()); // Capitalize first letter
+};
+
+
+export function RoomBlock({ index, onRemove }: RoomBlockProps) {
+  const { control, watch, setValue, getValues } = useFormContext<PropertyFormData>();
+  const roomPathPrefix = `rooms.${index}` as const;
+  const roomTypePath = `${roomPathPrefix}.roomType` as const;
+  const kitchenDetailsPath = `${roomPathPrefix}.kitchenDetails` as const;
+
+  const selectedRoomTypeId = watch(roomTypePath);
+  const RoomIcon = ROOM_TYPES.find(rt => rt.id === selectedRoomTypeId)?.icon;
+
+  const isKitchen = selectedRoomTypeId === 'kitchen';
+  const isBathroom = selectedRoomTypeId === 'bathroom' || selectedRoomTypeId === 'half_bathroom';
+  const isGarage = selectedRoomTypeId === 'garage';
+  const isUtility = selectedRoomTypeId === 'laundry' || selectedRoomTypeId === 'utility_room';
+
+  const showFanOptions = !isBathroom && !isGarage && selectedRoomTypeId;
+  const showWasherDryerHookups = (isUtility || isGarage) && selectedRoomTypeId;
+
+  // Initialize kitchenDetails if room type is kitchen and details are not set
+  if (isKitchen && !getValues(kitchenDetailsPath)) {
+    setValue(kitchenDetailsPath, {
+      island: false, raisedBar: false, eatInKitchen: false, graniteKTop: false, laminateKTop: false,
+      corianKTop: false, tileKTop: false, otherKTop: '', walkInPantry: false, tileBacksplash: false,
+      butlersPantry: false, cabinets36inch: false, cabinets42inch: false, ssAppliances: false,
+      microwaveFlush: false, microwaveKTop: false, dishwasher: false, disposal: false,
+      fridge: '', compactor: false, wineCooler: false, rangeType: '', rangeOven: '',
+      cooktopType: '', hoodAVent: false, outdoorGrill: false,
+    });
+  }
+
 
   return (
     <Card className="border border-border shadow-md hover:shadow-lg transition-shadow duration-200">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-         <CardTitle className="text-lg flex items-center gap-2">
-          {IconComponent && <IconComponent className="h-5 w-5 text-primary" />}
+        <CardTitle className="text-lg flex items-center gap-2">
+          {RoomIcon && <RoomIcon className="h-5 w-5 text-primary" />}
           Room {index + 1}
         </CardTitle>
         <Button
@@ -47,11 +85,20 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
       <CardContent className="space-y-4 pt-4">
         <FormField
           control={control}
-          name={`${roomPathPrefix}.roomType`}
+          name={roomTypePath}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Room Type</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value || ''}>
+              <Select 
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  // Reset conditional fields when type changes
+                  if (value !== 'kitchen') setValue(kitchenDetailsPath, undefined);
+                  setValue(`${roomPathPrefix}.fan`, 'na');
+                  setValue(`${roomPathPrefix}.washerDryerHookups`, 'na');
+                }} 
+                value={field.value || ''}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select room type" />
@@ -80,7 +127,7 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
               <FormItem>
                 <FormLabel>Length (ft)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 12" {...field} value={field.value ?? ''} />
+                  <Input type="number" placeholder="e.g., 12" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -93,7 +140,7 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
               <FormItem>
                 <FormLabel>Width (ft)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 10" {...field} value={field.value ?? ''} />
+                  <Input type="number" placeholder="e.g., 10" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -105,7 +152,7 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
           name={`${roomPathPrefix}.features`}
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Features / Notes</FormLabel>
+              <FormLabel>Features / Notes for this Room</FormLabel>
               <FormControl>
                 <Textarea placeholder="e.g., Hardwood floors, large window" {...field} value={field.value ?? ''} />
               </FormControl>
@@ -113,7 +160,172 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
             </FormItem>
           )}
         />
+
+        {showFanOptions && (
+          <FormField
+            control={control}
+            name={`${roomPathPrefix}.fan`}
+            render={({ field }) => (
+              <FormItem className="space-y-3">
+                <FormLabel className="flex items-center"><Wind className="mr-2 h-4 w-4 text-primary" />Has Fan?</FormLabel>
+                <FormControl>
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    className="flex space-x-2"
+                  >
+                    {YES_NO_NA_OPTIONS.map(option => ( // Changed from YES_NO_OPTIONS
+                      <FormItem key={option.id} className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value={option.id} />
+                        </FormControl>
+                        <FormLabel className="font-normal">{option.label}</FormLabel>
+                      </FormItem>
+                    ))}
+                  </RadioGroup>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {showWasherDryerHookups && (
+          <FormField
+            control={control}
+            name={`${roomPathPrefix}.washerDryerHookups`}
+            render={({ field }) => (
+              <FormItem className="space-y-3">
+                <FormLabel className="flex items-center"><PlugZap className="mr-2 h-4 w-4 text-primary" />Washer/Dryer Hookups?</FormLabel>
+                <FormControl>
+                  <RadioGroup
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    className="flex space-x-2"
+                  >
+                     {YES_NO_NA_OPTIONS.map(option => ( // Changed from YES_NO_OPTIONS
+                      <FormItem key={option.id} className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value={option.id} />
+                        </FormControl>
+                        <FormLabel className="font-normal">{option.label}</FormLabel>
+                      </FormItem>
+                    ))}
+                  </RadioGroup>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {isKitchen && getValues(kitchenDetailsPath) && (
+          <div className="space-y-4 pt-4 border-t mt-4">
+            <h4 className="text-md font-semibold flex items-center"><ChefHat className="mr-2 h-5 w-5 text-primary" />Kitchen Details</h4>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {kitchenFeatureBooleanFields.map(featureKey => (
+                <FormField
+                  key={featureKey}
+                  control={control}
+                  name={`${kitchenDetailsPath}.${featureKey}`}
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 p-2 border rounded-md shadow-sm">
+                      <FormControl>
+                        <Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <FormLabel className="font-normal text-sm">{formatKitchenFeatureLabel(featureKey)}</FormLabel>
+                    </FormItem>
+                  )}
+                />
+              ))}
+            </div>
+
+            <FormField
+              control={control}
+              name={`${kitchenDetailsPath}.fridge`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Refrigerator</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Select fridge option" /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      {FRIDGE_OPTIONS.map(opt => <SelectItem key={opt.id} value={opt.id}>{opt.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={control}
+                name={`${kitchenDetailsPath}.rangeType`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Range Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select range type" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        {RANGE_TYPE_OPTIONS.map(opt => <SelectItem key={opt.id} value={opt.id}>{opt.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={control}
+                name={`${kitchenDetailsPath}.rangeOven`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Range Oven</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select oven type" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        {RANGE_OVEN_OPTIONS.map(opt => <SelectItem key={opt.id} value={opt.id}>{opt.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={control}
+              name={`${kitchenDetailsPath}.cooktopType`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cooktop Type</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Select cooktop type" /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      {COOKTOP_TYPE_OPTIONS.map(opt => <SelectItem key={opt.id} value={opt.id}>{opt.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+                control={control}
+                name={`${kitchenDetailsPath}.otherKTop`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Other Countertop Material (if selected)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Specify other material" {...field} value={field.value ?? ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
+

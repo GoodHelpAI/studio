@@ -15,7 +15,15 @@ export function RoomsStep() {
   });
 
   const addRoom = () => {
-    append({ roomType: '', length: undefined, width: undefined, features: '' });
+    append({ 
+      roomType: '', 
+      length: undefined, 
+      width: undefined, 
+      features: '',
+      fan: 'na', // default for fan
+      washerDryerHookups: 'na', // default for W/D
+      kitchenDetails: undefined // Initialize as undefined
+    });
   };
 
   return (
@@ -39,3 +47,5 @@ export function RoomsStep() {
     </div>
   );
 }
+
+    

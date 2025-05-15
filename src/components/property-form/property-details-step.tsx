@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useFormContext, Controller } from 'react-hook-form';
+import { useFormContext } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -16,52 +16,19 @@ export function PropertyDetailsStep() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <FormField
           control={control}
-          name="price"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Price</FormLabel>
-              <FormControl>
-                <Input
-                  type="text"
-                  placeholder="e.g., 500,000"
-                  {...field}
-                  value={field.value ?? ''}
-                  onChange={e => field.onChange(e.target.value.replace(/[^0-9.]/g, ''))}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={control}
-          name="squareFootage"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Square Footage (SqFt)</FormLabel>
-              <FormControl>
-                <Input
-                  type="text"
-                  placeholder="e.g., 2,000"
-                  {...field}
-                  value={field.value ?? ''}
-                  onChange={e => field.onChange(e.target.value.replace(/[^0-9]/g, ''))}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <FormField
-          control={control}
           name="overallBedrooms"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Total Bedrooms</FormLabel>
               <FormControl>
-                <Input type="number" min="0" placeholder="e.g., 3" {...field} value={field.value ?? ''} />
+                <Input 
+                  type="number" 
+                  min="0" 
+                  placeholder="e.g., 3" 
+                  {...field} 
+                  value={field.value === undefined ? '' : String(field.value)}
+                  onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -72,42 +39,24 @@ export function PropertyDetailsStep() {
           name="overallBathrooms"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Total Bathrooms</FormLabel>
+              <FormLabel>Total Bathrooms (e.g., 2.5)</FormLabel>
               <FormControl>
-                <Input type="number" step="0.5" min="0" placeholder="e.g., 2.5" {...field} value={field.value ?? ''} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={control}
-          name="yearBuilt"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Year Built</FormLabel>
-              <FormControl>
-                <Input type="number" placeholder="e.g., 1995" {...field} value={field.value ?? ''} />
+                <Input 
+                  type="number" 
+                  step="0.5" 
+                  min="0" 
+                  placeholder="e.g., 2.5" 
+                  {...field} 
+                  value={field.value === undefined ? '' : String(field.value)}
+                  onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
       </div>
-       <FormField
-        control={control}
-        name="lotSize"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Lot Size</FormLabel>
-            <FormControl>
-              <Input placeholder="e.g., 0.25 acres or 10,000 sqft" {...field} value={field.value ?? ''} />
-            </FormControl>
-            <FormDescription>Enter value and unit (e.g., acres, sqft).</FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      
       <FormField
         control={control}
         name="hasHOA"
@@ -137,8 +86,11 @@ export function PropertyDetailsStep() {
                   type="text"
                   placeholder="e.g., 150"
                   {...field}
-                  value={field.value ?? ''}
-                  onChange={e => field.onChange(e.target.value.replace(/[^0-9.]/g, ''))}
+                  value={field.value === undefined ? '' : String(field.value)}
+                  onChange={e => {
+                    const numValue = parseFloat(e.target.value.replace(/[^0-9.]/g, ''));
+                    field.onChange(isNaN(numValue) ? undefined : numValue);
+                  }}
                 />
               </FormControl>
               <FormDescription>Enter the monthly amount.</FormDescription>
@@ -150,3 +102,5 @@ export function PropertyDetailsStep() {
     </div>
   );
 }
+
+    
