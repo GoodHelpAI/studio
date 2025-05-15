@@ -311,7 +311,8 @@ export function PropertyForm() {
             className="text-2xl md:text-3xl text-center font-bold pt-4"
             style={{ color: '#8c1c19' }} 
           >
-            Cudd Realty Measurement Form
+            <div>Cudd Realty</div>
+            <div>Measurement Form</div>
           </CardTitle>
           <CardDescription className="text-center text-muted-foreground">
             {steps[currentStep - 1].title} - Step {currentStep} of {steps.length}
