@@ -7,10 +7,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { propertySchema, type PropertyFormData } from '@/lib/schema';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-// import { Progress } from '@/components/ui/progress'; // Removed
+// import { Progress } from '@/components/ui/progress'; // Was removed
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, ArrowRight, Send, Check } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { ArrowLeft, ArrowRight, Send } from 'lucide-react';
+import { cn } from '@/lib/utils'; // Keep cn for other uses
 
 import { BasicInfoStep } from './property-form/basic-info-step';
 import { PropertyDetailsStep } from './property-form/property-details-step';
@@ -38,68 +38,6 @@ const steps = [
 ];
 
 const N8N_WEBHOOK_URL = 'https://goodhelpai-n8n.onrender.com/webhook-test/06703c6e-8f0a-415c-b55b-99f33003db26';
-
-
-interface BreadcrumbProgressProps {
-  steps: Array<{ id: number; title: string }>;
-  currentStepId: number;
-  completedSteps: Set<number>;
-  onStepSelect: (stepId: number) => void;
-}
-
-const BreadcrumbProgress: React.FC<BreadcrumbProgressProps> = ({ steps, currentStepId, completedSteps, onStepSelect }) => {
-  return (
-    <div className="flex w-full items-start justify-center px-2 md:px-4 mb-6" aria-label="Form progress">
-      {steps.map((step, index) => {
-        const isCompleted = completedSteps.has(step.id);
-        const isCurrent = step.id === currentStepId;
-        // A step is clickable if it's completed and is not the current step
-        const isClickable = isCompleted && !isCurrent && step.id < currentStepId;
-
-        return (
-          <React.Fragment key={step.id}>
-            <div className="flex flex-col items-center group">
-              <button
-                type="button"
-                onClick={() => isClickable && onStepSelect(step.id)}
-                disabled={!isClickable}
-                className={cn(
-                  "w-8 h-8 md:w-10 md:h-10 rounded-full border-2 flex items-center justify-center text-xs md:text-sm font-medium transition-all duration-200 ease-in-out",
-                  isCompleted
-                    ? "bg-emerald-500 border-emerald-600 text-white"
-                    : isCurrent
-                    ? "border-primary bg-primary/10 text-primary ring-2 ring-primary ring-offset-2 ring-offset-background"
-                    : "border-border bg-muted text-muted-foreground",
-                  isClickable ? "cursor-pointer hover:opacity-80" : "cursor-default"
-                )}
-                aria-current={isCurrent ? "step" : undefined}
-              >
-                {isCompleted && !isCurrent ? <Check size={18} className="text-white" /> : step.id}
-              </button>
-              <p
-                className={cn(
-                  "mt-2 text-xs text-center w-20 md:w-24 break-words transition-colors duration-200 ease-in-out",
-                  isCompleted ? "text-emerald-600 font-medium" :
-                  isCurrent ? "text-primary font-medium" : "text-muted-foreground"
-                )}
-              >
-                {step.title}
-              </p>
-            </div>
-            {index < steps.length - 1 && (
-              <div
-                className={cn(
-                  "flex-1 h-1 self-start mt-4 md:mt-5 mx-0.5 md:mx-1 transition-colors duration-300 ease-in-out",
-                  isCompleted ? "bg-emerald-500" : "bg-border"
-                )}
-              />
-            )}
-          </React.Fragment>
-        );
-      })}
-    </div>
-  );
-};
 
 
 function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
@@ -143,13 +81,12 @@ function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
 
 export function PropertyForm() {
   const [currentStep, setCurrentStep] = useState(1);
-  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const methods = useForm<PropertyFormData>({
     resolver: zodResolver(propertySchema),
-    mode: 'onTouched', // Consider 'onChange' or 'onBlur' for more immediate feedback if preferred
+    mode: 'onTouched',
     defaultValues: {
       address: '',
       city: '',
@@ -186,7 +123,6 @@ export function PropertyForm() {
       acType: '',
       acOtherType: '',
       heatType: '',
-      // otherHeatType: '', // Removed, not in schema
       hasPool: false,
       hasHotTub: false,
       hasSprinklers: false,
@@ -261,7 +197,6 @@ export function PropertyForm() {
     const currentStepConfig = steps[currentStep - 1];
     const currentStepFields = currentStepConfig.fields as FieldPath<PropertyFormData>[];
 
-    // Clear errors related to the current step's direct fields and conditionally validated fields
     currentStepFields.forEach(field => clearErrors(field));
     if (currentStepConfig.title === 'Property Details') clearErrors('hoaDues');
     if (currentStepConfig.title === 'Flooring') clearErrors('otherFlooringType');
@@ -282,7 +217,6 @@ export function PropertyForm() {
     const isValid = currentStepFields.length > 0 ? await trigger(currentStepFields, { shouldFocus: true }) : true;
 
     let customValidationPassed = true;
-    // Custom validation logic (already present, ensure it's up-to-date)
     if (currentStepConfig.title === 'Property Details') {
       if (getValues('hasHOA') && (getValues('hoaDues') === undefined || getValues('hoaDues') === null || getValues('hoaDues')! <= 0)) {
         setError('hoaDues', { type: 'manual', message: 'HOA dues are required if HOA is selected and must be positive.' });
@@ -332,7 +266,6 @@ export function PropertyForm() {
     }
 
     if (isValid && customValidationPassed) {
-      setCompletedSteps(prev => new Set(prev).add(currentStep));
       if (currentStep < steps.length) {
         setCurrentStep((prev) => prev + 1);
       }
@@ -360,18 +293,6 @@ export function PropertyForm() {
     }
   };
 
-  const handleBreadcrumbStepSelect = (stepId: number) => {
-    if (completedSteps.has(stepId) && stepId < currentStep) {
-        setCurrentStep(stepId);
-    } else if (stepId === currentStep) {
-        // Do nothing if clicking the current step
-    } else if (stepId < currentStep) { // Allow going back to any previous step even if not "completed" by next button
-        setCurrentStep(stepId);
-    }
-    // Do not allow jumping forward via breadcrumbs past unvalidated steps
-  };
-
-
   const ActiveStepComponent = steps[currentStep - 1].component;
 
   return (
@@ -379,22 +300,16 @@ export function PropertyForm() {
       <Card className="w-full max-w-3xl mx-auto shadow-2xl">
         <CardHeader>
           <CardTitle
-            className="text-2xl md:text-3xl text-center font-bold pt-2" // Adjusted padding
+            className="text-2xl md:text-3xl text-center font-bold pt-2"
             style={{ color: '#8c1c19' }} 
           >
             <div>Cudd Realty</div>
             <div>Measurement Form</div>
           </CardTitle>
           <CardDescription className="text-center text-muted-foreground">
-             {/* Replaced simple step text with BreadcrumbProgress */}
+             Step {currentStep} of {steps.length}: {steps[currentStep - 1].title}
           </CardDescription>
-          {/* <Progress value={(currentStep / steps.length) * 100} className="w-full mt-2" /> Removed */}
-          <BreadcrumbProgress 
-            steps={steps} 
-            currentStepId={currentStep} 
-            completedSteps={completedSteps}
-            onStepSelect={handleBreadcrumbStepSelect}
-          />
+          {/* <Progress value={(currentStep / steps.length) * 100} className="w-full mt-2" /> Was removed */}
         </CardHeader>
         <form onSubmit={handleSubmit(processForm)}>
           <CardContent className="min-h-[300px] py-6">
