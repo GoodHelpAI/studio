@@ -7,10 +7,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { propertySchema, type PropertyFormData } from '@/lib/schema';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-// import { Progress } from '@/components/ui/progress'; // Was removed
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, ArrowRight, Send } from 'lucide-react';
-import { cn } from '@/lib/utils'; // Keep cn for other uses
+import { ArrowLeft, ArrowRight, Send, Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 import { BasicInfoStep } from './property-form/basic-info-step';
 import { PropertyDetailsStep } from './property-form/property-details-step';
@@ -21,20 +20,20 @@ import { AdditionalDetailsStep } from './property-form/additional-details-step';
 import { ReviewStep } from './property-form/review-step';
 
 const steps = [
-  { id: 1, title: 'Basic Information', component: BasicInfoStep, fields: ['address', 'city', 'state', 'zip', 'propertyType'] },
-  { id: 2, title: 'Property Details', component: PropertyDetailsStep, fields: ['overallBedrooms', 'overallBathrooms', 'hasHOA', 'hoaDues'] },
-  { id: 3, title: 'Room Specifications', component: RoomsStep, fields: ['rooms'] },
-  { id: 4, title: 'Carport & RV Pad', component: GarageCarportStep, fields: ['carportPresent', 'carportLength', 'carportWidth', 'rvPadPresent', 'rvPadLength', 'rvPadWidth'] },
+  { id: 1, title: 'Basic Info', component: BasicInfoStep, fields: ['address', 'city', 'state', 'zip', 'propertyType'] },
+  { id: 2, title: 'Prop Details', component: PropertyDetailsStep, fields: ['overallBedrooms', 'overallBathrooms', 'hasHOA', 'hoaDues'] },
+  { id: 3, title: 'Room Specs', component: RoomsStep, fields: ['rooms'] },
+  { id: 4, title: 'Parking Pads', component: GarageCarportStep, fields: ['carportPresent', 'carportLength', 'carportWidth', 'rvPadPresent', 'rvPadLength', 'rvPadWidth'] },
   { id: 5, title: 'Flooring', component: FlooringStep, fields: ['flooringTypes', 'otherFlooringType'] },
-  { id: 6, title: 'Additional Details & Features', component: AdditionalDetailsStep, fields: [
+  { id: 6, title: 'Extra Details', component: AdditionalDetailsStep, fields: [
     'patios', 'sheds', 'hasDeck', 'fenceHeight', 'fenceMaterial', 'fenceStyle',
     'fireplaceCount', 'fireplaceTypeWood', 'fireplaceTypeGas', 'fireplaceFeaturesLogs', 'fireplaceFeaturesElectricStarter', 'fireplaceVaultedCeilings',
-    'programmableThermostat', 'waterHeater', 'acType', 'acOtherType', 'heatType', // Removed otherHeatType as it's not in schema
+    'programmableThermostat', 'waterHeater', 'acType', 'acOtherType', 'heatType',
     'hasPool', 'hasHotTub', 'hasSprinklers', 'hasAlarm', 'smokeDetectorCount',
     'backyardFeatures', 'communityAmenities',
     'description'
   ]},
-  { id: 7, title: 'Review & Submit', component: ReviewStep, fields: [] },
+  { id: 7, title: 'Review Form', component: ReviewStep, fields: [] },
 ];
 
 const N8N_WEBHOOK_URL = 'https://goodhelpai-n8n.onrender.com/webhook-test/06703c6e-8f0a-415c-b55b-99f33003db26';
@@ -52,13 +51,22 @@ function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
       if (errorField) {
         if (typeof errorField.message === 'string') {
           let fieldName = currentPath;
+          // Custom formatting for room errors
           if (fieldName.startsWith('rooms.')) {
             fieldName = fieldName.replace(/^rooms\.(\d+)\.(.*)$/, (match, roomIndex, field) => {
               let readableField = field.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim();
               readableField = readableField.charAt(0).toUpperCase() + readableField.slice(1);
               return `Room ${parseInt(roomIndex) + 1} ${readableField}`;
             });
-          } else {
+          } else if (fieldName.startsWith('patios.') || fieldName.startsWith('sheds.')) {
+             fieldName = fieldName.replace(/^(patios|sheds)\.(\d+)\.(.*)$/, (match, type, index, field) => {
+              let readableField = field.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim();
+              readableField = readableField.charAt(0).toUpperCase() + readableField.slice(1);
+              const itemType = type.charAt(0).toUpperCase() + type.slice(1, -1); // Patio or Shed
+              return `${itemType} ${parseInt(index) + 1} ${readableField}`;
+            });
+          }
+           else {
              fieldName = fieldName.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim();
              fieldName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
           }
@@ -69,24 +77,79 @@ function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
               messages = messages.concat(getAllErrorMessages(item, `${currentPath}.${index}`));
             }
           });
-        } else if (typeof errorField === 'object' && !errorField.type ) { 
+        } else if (typeof errorField === 'object' && !errorField.type ) { // Check if it's an object of errors, not a field error itself
           messages = messages.concat(getAllErrorMessages(errorField, currentPath));
         }
       }
     }
   }
-  return messages.filter(Boolean); 
+  return messages.filter(Boolean); // Remove any undefined/null messages
 }
+
+interface HorizontalBreadcrumbProps {
+  currentStep: number;
+  completedSteps: Set<number>;
+  onStepClick: (stepId: number) => void;
+}
+
+const HorizontalBreadcrumb: React.FC<HorizontalBreadcrumbProps> = ({ currentStep, completedSteps, onStepClick }) => {
+  return (
+    <div className="flex items-start justify-between w-full px-2 sm:px-4 md:px-6 py-4 my-4">
+      {steps.map((step, index) => {
+        const isCompleted = completedSteps.has(step.id) || currentStep > step.id;
+        const isActive = currentStep === step.id;
+        const isUpcoming = currentStep < step.id && !completedSteps.has(step.id);
+        const isLastStep = index === steps.length - 1;
+
+        return (
+          <React.Fragment key={step.id}>
+            <div className="flex flex-col items-center text-center">
+              <div
+                className={cn(
+                  "text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 min-h-[2.5em] flex items-center justify-center",
+                  isActive || isCompleted ? "text-blue-600" : "text-gray-500",
+                  isCompleted && "cursor-pointer hover:text-blue-700"
+                )}
+                onClick={() => (isCompleted && !isActive) && onStepClick(step.id)}
+              >
+                {step.title}
+              </div>
+              <div
+                className={cn(
+                  "w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center border-2",
+                  isActive && "border-blue-600 bg-white",
+                  isCompleted && "bg-blue-600 border-blue-600 text-white",
+                  isUpcoming && "bg-gray-300 border-gray-300",
+                  isCompleted && !isActive && "cursor-pointer hover:bg-blue-700"
+                )}
+                onClick={() => (isCompleted && !isActive) && onStepClick(step.id)}
+              >
+                {isCompleted && !isActive ? <Check size={16} /> : isCompleted && isActive ? <Check size={16} /> : null}
+              </div>
+            </div>
+            {!isLastStep && (
+              <div className={cn(
+                "flex-1 h-0.5 mt-[calc(2.5em+0.75rem+0.25rem)] sm:mt-[calc(2.5em+0.875rem+0.25rem)] mx-1 sm:mx-2", // Adjust for title height + circle height/2 + margin
+                isActive || isCompleted ? "bg-blue-600" : "bg-gray-300"
+              )} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+};
 
 
 export function PropertyForm() {
   const [currentStep, setCurrentStep] = useState(1);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const methods = useForm<PropertyFormData>({
     resolver: zodResolver(propertySchema),
-    mode: 'onTouched',
+    mode: 'onTouched', // Validate on blur
     defaultValues: {
       address: '',
       city: '',
@@ -197,11 +260,13 @@ export function PropertyForm() {
     const currentStepConfig = steps[currentStep - 1];
     const currentStepFields = currentStepConfig.fields as FieldPath<PropertyFormData>[];
 
+    // Clear previous manual errors for the current step fields
     currentStepFields.forEach(field => clearErrors(field));
-    if (currentStepConfig.title === 'Property Details') clearErrors('hoaDues');
+    // Clear specific conditional errors if they exist
+    if (currentStepConfig.title === 'Prop Details') clearErrors('hoaDues');
     if (currentStepConfig.title === 'Flooring') clearErrors('otherFlooringType');
-    if (currentStepConfig.title === 'Additional Details & Features') clearErrors('acOtherType');
-    if (currentStepConfig.title === 'Room Specifications') {
+    if (currentStepConfig.title === 'Extra Details') clearErrors('acOtherType');
+    if (currentStepConfig.title === 'Room Specs') {
       const rooms = getValues('rooms');
       rooms?.forEach((_room, index) => {
         clearErrors(`rooms.${index}.roomType` as const);
@@ -210,14 +275,17 @@ export function PropertyForm() {
         clearErrors(`rooms.${index}.garageLength` as const);
         clearErrors(`rooms.${index}.garageWidth` as const);
         clearErrors(`rooms.${index}.garageCarCount` as const);
+        // Clear kitchen errors too if applicable
+        Object.keys(getValues(`rooms.${index}.kitchenDetails`) || {}).forEach(k => {
+            clearErrors(`rooms.${index}.kitchenDetails.${k}` as any);
+        });
       });
     }
-
 
     const isValid = currentStepFields.length > 0 ? await trigger(currentStepFields, { shouldFocus: true }) : true;
 
     let customValidationPassed = true;
-    if (currentStepConfig.title === 'Property Details') {
+    if (currentStepConfig.title === 'Prop Details') {
       if (getValues('hasHOA') && (getValues('hoaDues') === undefined || getValues('hoaDues') === null || getValues('hoaDues')! <= 0)) {
         setError('hoaDues', { type: 'manual', message: 'HOA dues are required if HOA is selected and must be positive.' });
         customValidationPassed = false;
@@ -229,13 +297,13 @@ export function PropertyForm() {
         customValidationPassed = false;
       }
     }
-     if (currentStepConfig.title === 'Additional Details & Features') {
+     if (currentStepConfig.title === 'Extra Details') {
       if (getValues('acType') === 'other' && (!getValues('acOtherType') || getValues('acOtherType')!.trim() === '')) {
         setError('acOtherType', {type: 'manual', message: 'Please specify other A/C type.'});
         customValidationPassed = false;
       }
     }
-    if (currentStepConfig.title === 'Room Specifications') {
+    if (currentStepConfig.title === 'Room Specs') {
       const rooms = getValues('rooms');
       rooms?.forEach((room, index) => {
          if (!room.roomType || room.roomType.trim() === '') {
@@ -266,6 +334,7 @@ export function PropertyForm() {
     }
 
     if (isValid && customValidationPassed) {
+      setCompletedSteps(prev => new Set(prev).add(currentStep));
       if (currentStep < steps.length) {
         setCurrentStep((prev) => prev + 1);
       }
@@ -274,7 +343,7 @@ export function PropertyForm() {
       let toastDescription = "Please correct the errors on the current step:";
       if (collectedMessages.length > 0) {
         toastDescription += "\n\n- " + collectedMessages.join('\n- ');
-      } else if (!isValid && currentStepFields.length > 0) {
+      } else if (!isValid && currentStepFields.length > 0) { // General message if specific errors aren't found but validation failed
         toastDescription += "\n\nPlease review all fields for missing or invalid entries.";
       }
 
@@ -293,23 +362,32 @@ export function PropertyForm() {
     }
   };
 
+  const handleBreadcrumbClick = (stepId: number) => {
+    // Allow navigation only to steps that have been completed or are before the current step
+     if (completedSteps.has(stepId) || stepId < currentStep) {
+      setCurrentStep(stepId);
+    }
+  };
+
   const ActiveStepComponent = steps[currentStep - 1].component;
 
   return (
     <FormProvider {...methods}>
       <Card className="w-full max-w-3xl mx-auto shadow-2xl">
-        <CardHeader>
+        <CardHeader className="pb-2 pt-4"> {/* Adjusted padding */}
           <CardTitle
-            className="text-2xl md:text-3xl text-center font-bold pt-2"
+            className="text-2xl md:text-3xl text-center font-bold" // pt-2 removed
             style={{ color: '#8c1c19' }} 
           >
             <div>Cudd Realty</div>
             <div>Measurement Form</div>
           </CardTitle>
-          <CardDescription className="text-center text-muted-foreground">
-             Step {currentStep} of {steps.length}: {steps[currentStep - 1].title}
-          </CardDescription>
-          {/* <Progress value={(currentStep / steps.length) * 100} className="w-full mt-2" /> Was removed */}
+          {/* Replace text description with breadcrumb */}
+           <HorizontalBreadcrumb 
+            currentStep={currentStep} 
+            completedSteps={completedSteps}
+            onStepClick={handleBreadcrumbClick}
+          />
         </CardHeader>
         <form onSubmit={handleSubmit(processForm)}>
           <CardContent className="min-h-[300px] py-6">
@@ -344,3 +422,4 @@ export function PropertyForm() {
     </FormProvider>
   );
 }
+
