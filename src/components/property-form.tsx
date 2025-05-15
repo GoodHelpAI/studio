@@ -23,20 +23,19 @@ import { ReviewStep } from './property-form/review-step';
 
 interface StepConfig {
   id: number;
-  title: string; // Original descriptive titles for textual display
-  shortTitle: string; // New short titles for breadcrumbs (if used again)
+  title: string; 
   component: React.FC;
   fields: FieldPath<PropertyFormData>[];
-  icon?: LucideIcon; // Icon for breadcrumbs (if used again)
+  icon?: LucideIcon; 
 }
 
 const steps: StepConfig[] = [
-  { id: 1, title: 'Basic Information', shortTitle: 'Basic Info', component: BasicInfoStep, fields: ['address', 'city', 'state', 'zip', 'propertyType'], icon: Home },
-  { id: 2, title: 'Property Details', shortTitle: 'Prop Details', component: PropertyDetailsStep, fields: ['overallBedrooms', 'overallBathrooms', 'hasHOA', 'hoaDues'], icon: ListChecks },
-  { id: 3, title: 'Room Specifications', shortTitle: 'Room Specs', component: RoomsStep, fields: ['rooms'], icon: LayoutGrid },
-  { id: 4, title: 'Carport & RV Pad', shortTitle: 'Parking Pads', component: GarageCarportStep, fields: ['carportPresent', 'carportLength', 'carportWidth', 'rvPadPresent', 'rvPadLength', 'rvPadWidth'], icon: Car },
-  { id: 5, title: 'Flooring', shortTitle: 'Flooring', component: FlooringStep, fields: ['flooringTypes', 'otherFlooringType'], icon: Layers },
-  { id: 6, title: 'Additional Details & Features', shortTitle: 'Extra Details', component: AdditionalDetailsStep, fields: [
+  { id: 1, title: 'Basic Information', component: BasicInfoStep, fields: ['address', 'city', 'state', 'zip', 'propertyType'], icon: Home },
+  { id: 2, title: 'Property Details', component: PropertyDetailsStep, fields: ['overallBedrooms', 'overallBathrooms', 'hasHOA', 'hoaDues'], icon: ListChecks },
+  { id: 3, title: 'Room Specifications', component: RoomsStep, fields: ['rooms'], icon: LayoutGrid },
+  { id: 4, title: 'Carport & RV Pad', component: GarageCarportStep, fields: ['carportPresent', 'carportLength', 'carportWidth', 'rvPadPresent', 'rvPadLength', 'rvPadWidth'], icon: Car },
+  { id: 5, title: 'Flooring', component: FlooringStep, fields: ['flooringTypes', 'otherFlooringType'], icon: Layers },
+  { id: 6, title: 'Additional Details & Features', component: AdditionalDetailsStep, fields: [
     'patios', 'sheds', 'hasDeck', 'fenceHeight', 'fenceMaterial', 'fenceStyle',
     'fireplaceCount', 'fireplaceTypeWood', 'fireplaceTypeGas', 'fireplaceFeaturesLogs', 'fireplaceFeaturesElectricStarter', 'fireplaceVaultedCeilings',
     'programmableThermostat', 'waterHeater', 'acType', 'acOtherType', 'heatType',
@@ -44,7 +43,7 @@ const steps: StepConfig[] = [
     'backyardFeatures', 'communityAmenities',
     'description'
   ], icon: Wrench },
-  { id: 7, title: 'Review & Submit', shortTitle: 'Review Form', component: ReviewStep, fields: [], icon: FileCheck2 },
+  { id: 7, title: 'Review & Submit', component: ReviewStep, fields: [], icon: FileCheck2 },
 ];
 
 const N8N_WEBHOOK_URL = 'https://goodhelpai-n8n.onrender.com/webhook-test/06703c6e-8f0a-415c-b55b-99f33003db26';
@@ -357,8 +356,8 @@ export function PropertyForm() {
               <Image
                 src="/assets/cudd logo.webp"
                 alt="Cudd Realty Logo"
-                width={180} 
-                height={45}
+                width={135} 
+                height={34}
                 className="object-contain"
                 data-ai-hint="company logo"
               />
