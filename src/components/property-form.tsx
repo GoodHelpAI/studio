@@ -6,11 +6,11 @@ import { useForm, FormProvider, type SubmitHandler, type FieldPath } from 'react
 import { zodResolver } from '@hookform/resolvers/zod';
 import { propertySchema, type PropertyFormData } from '@/lib/schema';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, ArrowRight, Send, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Send, Check, Home, ListChecks, LayoutGrid, Car, Layers, Wrench, FileCheck2, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import Image from 'next/image';
+// import Image from 'next/image'; // Logo removed
 
 import { BasicInfoStep } from './property-form/basic-info-step';
 import { PropertyDetailsStep } from './property-form/property-details-step';
@@ -20,12 +20,20 @@ import { FlooringStep } from './property-form/flooring-step';
 import { AdditionalDetailsStep } from './property-form/additional-details-step';
 import { ReviewStep } from './property-form/review-step';
 
-const steps = [
-  { id: 1, title: 'Basic Info', component: BasicInfoStep, fields: ['address', 'city', 'state', 'zip', 'propertyType'] },
-  { id: 2, title: 'Prop Details', component: PropertyDetailsStep, fields: ['overallBedrooms', 'overallBathrooms', 'hasHOA', 'hoaDues'] },
-  { id: 3, title: 'Room Specs', component: RoomsStep, fields: ['rooms'] },
-  { id: 4, title: 'Parking Pads', component: GarageCarportStep, fields: ['carportPresent', 'carportLength', 'carportWidth', 'rvPadPresent', 'rvPadLength', 'rvPadWidth'] },
-  { id: 5, title: 'Flooring', component: FlooringStep, fields: ['flooringTypes', 'otherFlooringType'] },
+interface StepConfig {
+  id: number;
+  title: string;
+  component: React.FC;
+  fields: FieldPath<PropertyFormData>[];
+  icon: LucideIcon;
+}
+
+const steps: StepConfig[] = [
+  { id: 1, title: 'Basic Info', component: BasicInfoStep, fields: ['address', 'city', 'state', 'zip', 'propertyType'], icon: Home },
+  { id: 2, title: 'Prop Details', component: PropertyDetailsStep, fields: ['overallBedrooms', 'overallBathrooms', 'hasHOA', 'hoaDues'], icon: ListChecks },
+  { id: 3, title: 'Room Specs', component: RoomsStep, fields: ['rooms'], icon: LayoutGrid },
+  { id: 4, title: 'Parking Pads', component: GarageCarportStep, fields: ['carportPresent', 'carportLength', 'carportWidth', 'rvPadPresent', 'rvPadLength', 'rvPadWidth'], icon: Car },
+  { id: 5, title: 'Flooring', component: FlooringStep, fields: ['flooringTypes', 'otherFlooringType'], icon: Layers },
   { id: 6, title: 'Extra Details', component: AdditionalDetailsStep, fields: [
     'patios', 'sheds', 'hasDeck', 'fenceHeight', 'fenceMaterial', 'fenceStyle',
     'fireplaceCount', 'fireplaceTypeWood', 'fireplaceTypeGas', 'fireplaceFeaturesLogs', 'fireplaceFeaturesElectricStarter', 'fireplaceVaultedCeilings',
@@ -33,8 +41,8 @@ const steps = [
     'hasPool', 'hasHotTub', 'hasSprinklers', 'hasAlarm', 'smokeDetectorCount',
     'backyardFeatures', 'communityAmenities',
     'description'
-  ]},
-  { id: 7, title: 'Review Form', component: ReviewStep, fields: [] },
+  ], icon: Wrench },
+  { id: 7, title: 'Review Form', component: ReviewStep, fields: [], icon: FileCheck2 },
 ];
 
 const N8N_WEBHOOK_URL = 'https://goodhelpai-n8n.onrender.com/webhook-test/06703c6e-8f0a-415c-b55b-99f33003db26';
@@ -52,7 +60,6 @@ function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
       if (errorField) {
         if (typeof errorField.message === 'string') {
           let fieldName = currentPath;
-          // Custom formatting for room errors
           if (fieldName.startsWith('rooms.')) {
             fieldName = fieldName.replace(/^rooms\.(\d+)\.(.*)$/, (match, roomIndex, field) => {
               let readableField = field.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim();
@@ -66,11 +73,10 @@ function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
              fieldName = fieldName.replace(/^(patios|sheds)\.(\d+)\.(.*)$/, (match, type, index, field) => {
               let readableField = field.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim();
               readableField = readableField.charAt(0).toUpperCase() + readableField.slice(1);
-              const itemType = type.charAt(0).toUpperCase() + type.slice(1, -1); // Patio or Shed
+              const itemType = type.charAt(0).toUpperCase() + type.slice(1, -1);
               return `${itemType} ${parseInt(index) + 1} ${readableField}`;
             });
-          }
-           else {
+          } else {
              fieldName = fieldName.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim();
              fieldName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
           }
@@ -81,72 +87,76 @@ function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
               messages = messages.concat(getAllErrorMessages(item, `${currentPath}.${index}`));
             }
           });
-        } else if (typeof errorField === 'object' && !errorField.type ) { // Check if it's an object of errors, not a field error itself
+        } else if (typeof errorField === 'object' && !errorField.type ) { 
           messages = messages.concat(getAllErrorMessages(errorField, currentPath));
         }
       }
     }
   }
-  return messages.filter(Boolean); // Remove any undefined/null messages
+  return messages.filter(Boolean); 
 }
 
 interface HorizontalBreadcrumbProps {
-  currentStep: number;
+  currentStepId: number;
   completedSteps: Set<number>;
   onStepClick: (stepId: number) => void;
+  stepsConfig: StepConfig[];
 }
 
-const HorizontalBreadcrumb: React.FC<HorizontalBreadcrumbProps> = ({ currentStep, completedSteps, onStepClick }) => {
-  const activeColor = "#56667a"; // New color for active/completed states
-  const upcomingBorderColor = 'rgb(209 213 219)'; // Tailwind gray-300
-  const upcomingBgColor = 'rgb(209 213 219)'; // Tailwind gray-300
-  const upcomingTextColor = 'text-gray-500';
+const HorizontalBreadcrumb: React.FC<HorizontalBreadcrumbProps> = ({ currentStepId, completedSteps, onStepClick, stepsConfig }) => {
+  const activeColor = "#56667a"; // Primary active/completed color
+  const upcomingBgColor = "bg-slate-100"; // Lighter gray for upcoming
+  const upcomingTextColor = "text-slate-500";
+  const completedBgColor = "bg-white";
+  const arrowWidth = "12px"; // Width of the pointy part of the arrow
 
   return (
-    <div className="flex items-start justify-between w-full px-2 sm:px-4 md:px-6 py-4 my-4">
-      {steps.map((step, index) => {
-        const isCompleted = completedSteps.has(step.id) || currentStep > step.id;
-        const isActive = currentStep === step.id;
-        const isUpcoming = currentStep < step.id && !completedSteps.has(step.id);
-        const isLastStep = index === steps.length - 1;
+    <div className="flex w-full overflow-x-auto py-4 -mx-1">
+      {stepsConfig.map((step, index) => {
+        const isCompleted = completedSteps.has(step.id);
+        const isCurrent = currentStepId === step.id;
+        
+        let clipPathStyle = '';
+        if (index === 0 && stepsConfig.length === 1) { // Single item
+          clipPathStyle = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
+        } else if (index === 0) { // First item
+          clipPathStyle = `polygon(0% 0%, calc(100% - ${arrowWidth}) 0%, 100% 50%, calc(100% - ${arrowWidth}) 100%, 0% 100%)`;
+        } else if (index === stepsConfig.length - 1) { // Last item
+          clipPathStyle = `polygon(${arrowWidth} 0%, 100% 0%, 100% 100%, ${arrowWidth} 100%, 0% 50%)`;
+        } else { // Middle items
+          clipPathStyle = `polygon(${arrowWidth} 0%, calc(100% - ${arrowWidth}) 0%, 100% 50%, calc(100% - ${arrowWidth}) 100%, ${arrowWidth} 100%, 0% 50%)`;
+        }
+
+        const Icon = step.icon;
 
         return (
-          <React.Fragment key={step.id}>
-            <div className="flex flex-col items-center text-center">
-              <div
-                className={cn(
-                  "text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 min-h-[2.5em] flex items-center justify-center",
-                  isCompleted && !isActive && "cursor-pointer hover:opacity-75",
-                  !(isActive || isCompleted) && upcomingTextColor
-                )}
-                style={isActive || isCompleted ? { color: activeColor } : {}}
-                onClick={() => (isCompleted && !isActive) && onStepClick(step.id)}
-              >
-                {step.title}
-              </div>
-              <div
-                className={cn(
-                  "w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center border-2",
-                  isCompleted && "text-white", // For the checkmark icon color
-                  isCompleted && !isActive && "cursor-pointer hover:opacity-75"
-                )}
-                style={{
-                  borderColor: isActive || isCompleted ? activeColor : upcomingBorderColor,
-                  backgroundColor: isCompleted ? activeColor : (isActive ? 'white' : upcomingBgColor),
-                }}
-                onClick={() => (isCompleted && !isActive) && onStepClick(step.id)}
-              >
-                {isCompleted ? <Check size={16} /> : null}
-              </div>
-            </div>
-            {!isLastStep && (
-              <div className={cn(
-                "flex-1 h-0.5 mt-[calc(2.5em+0.75rem+0.25rem)] sm:mt-[calc(2.5em+0.875rem+0.25rem)] mx-1 sm:mx-2"
-              )} 
-              style={{ backgroundColor: isActive || isCompleted ? activeColor : upcomingBgColor }}
-              />
+          <div
+            key={step.id}
+            className={cn(
+              "relative flex items-center justify-center h-10 min-w-[120px] sm:min-w-[140px] flex-1 transition-colors duration-200 ease-in-out shadow-sm",
+              isCurrent ? `text-white` : (isCompleted ? `text-[${activeColor}]` : upcomingTextColor),
+              isCompleted && !isCurrent && "cursor-pointer hover:opacity-90",
+              index > 0 ? `-ml-[${arrowWidth}]` : "",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             )}
-          </React.Fragment>
+            style={{
+              backgroundColor: isCurrent ? activeColor : (isCompleted ? 'white' : 'rgb(241 245 249)'), // slate-100 for upcoming
+              clipPath: clipPathStyle,
+              zIndex: stepsConfig.length - index, // Higher z-index for items on the left to be "under"
+              borderRight: index < stepsConfig.length - 1 ? `1px solid ${isCurrent || isCompleted ? activeColor : 'rgb(226, 232, 240)'}` : 'none', // slate-200
+              borderTop: `1px solid ${isCurrent || isCompleted ? activeColor : 'rgb(226, 232, 240)'}`,
+              borderBottom: `1px solid ${isCurrent || isCompleted ? activeColor : 'rgb(226, 232, 240)'}`,
+              borderLeft: index === 0 ? `1px solid ${isCurrent || isCompleted ? activeColor : 'rgb(226, 232, 240)'}` : 'none',
+            }}
+            onClick={() => (isCompleted || isCurrent) && !isCurrent && onStepClick(step.id)} // Allow clicking current to "refresh", or completed
+            role="button"
+            tabIndex={(isCompleted || isCurrent) && !isCurrent ? 0 : -1}
+            aria-current={isCurrent ? "step" : undefined}
+            aria-label={`Step ${step.id}: ${step.title}`}
+          >
+            <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5", isCurrent ? "mr-1 sm:mr-2" : "mr-1 sm:mr-2")} />
+            <span className="text-xs sm:text-sm font-medium truncate px-1">{step.title}</span>
+          </div>
         );
       })}
     </div>
@@ -162,7 +172,7 @@ export function PropertyForm() {
 
   const methods = useForm<PropertyFormData>({
     resolver: zodResolver(propertySchema),
-    mode: 'onTouched', // Validate on blur
+    mode: 'onTouched', 
     defaultValues: {
       address: '',
       city: '',
@@ -207,6 +217,9 @@ export function PropertyForm() {
       backyardFeatures: [],
       communityAmenities: [],
       description: '',
+      // interiorFeatures: [], // Removed
+      // exteriorFeatures: [], // Removed
+      // landscapingDescription: '', // Removed
     },
   });
 
@@ -242,6 +255,10 @@ export function PropertyForm() {
                 description: "Property data successfully sent to n8n workflow.",
                 variant: "default",
             });
+             // Potentially reset form or navigate away
+            // methods.reset(); // Resets form to defaultValues
+            // setCurrentStep(1);
+            // setCompletedSteps(new Set());
         } else {
             const errorData = await response.text();
             console.error('Failed to send to n8n:', response.status, errorData);
@@ -273,12 +290,17 @@ export function PropertyForm() {
     const currentStepConfig = steps[currentStep - 1];
     const currentStepFields = currentStepConfig.fields as FieldPath<PropertyFormData>[];
 
-    // Clear previous manual errors for the current step fields
-    currentStepFields.forEach(field => clearErrors(field));
-    // Clear specific conditional errors if they exist
-    if (currentStepConfig.title === 'Prop Details') clearErrors('hoaDues');
-    if (currentStepConfig.title === 'Flooring') clearErrors('otherFlooringType');
-    if (currentStepConfig.title === 'Extra Details') clearErrors('acOtherType');
+    Object.keys(errors).forEach(key => {
+      const fieldKey = key as FieldPath<PropertyFormData>;
+      if (currentStepFields.includes(fieldKey) || 
+          (currentStepConfig.title === 'Prop Details' && fieldKey === 'hoaDues') ||
+          (currentStepConfig.title === 'Flooring' && fieldKey === 'otherFlooringType') ||
+          (currentStepConfig.title === 'Extra Details' && fieldKey === 'acOtherType') ||
+          (currentStepConfig.title === 'Room Specs' && fieldKey.startsWith('rooms.'))
+      ) {
+        clearErrors(fieldKey);
+      }
+    });
     
     const rooms = getValues('rooms');
     if (currentStepConfig.title === 'Room Specs' && rooms) {
@@ -289,9 +311,11 @@ export function PropertyForm() {
         clearErrors(`rooms.${index}.garageLength` as const);
         clearErrors(`rooms.${index}.garageWidth` as const);
         clearErrors(`rooms.${index}.garageCarCount` as const);
-        Object.keys(getValues(`rooms.${index}.kitchenDetails`) || {}).forEach(k => {
-            clearErrors(`rooms.${index}.kitchenDetails.${k}` as any);
-        });
+        if (getValues(`rooms.${index}.kitchenDetails`)) {
+            Object.keys(getValues(`rooms.${index}.kitchenDetails`)!).forEach(k => {
+                clearErrors(`rooms.${index}.kitchenDetails.${k}` as any);
+            });
+        }
       });
     }
 
@@ -322,13 +346,12 @@ export function PropertyForm() {
             setError(`rooms.${index}.roomType` as const, { type: 'manual', message: 'Room type is required.' });
             customValidationPassed = false;
         }
-        // Only validate L/W for non-garage rooms if roomType is present
         if (room.roomType && room.roomType !== 'garage') {
-            if (room.length === undefined || room.length <= 0) {
+            if ((room.length === undefined || room.length <= 0) && (room.roomType !== 'half_bathroom' && room.roomType !== 'bathroom') ){ // Bathrooms can be small
                  setError(`rooms.${index}.length` as const, { type: 'manual', message: 'Positive length required.' });
                  customValidationPassed = false;
             }
-            if (room.width === undefined || room.width <= 0) {
+            if ((room.width === undefined || room.width <= 0) && (room.roomType !== 'half_bathroom' && room.roomType !== 'bathroom') ) {
                 setError(`rooms.${index}.width` as const, { type: 'manual', message: 'Positive width required.' });
                 customValidationPassed = false;
             }
@@ -354,12 +377,16 @@ export function PropertyForm() {
         setCurrentStep((prev) => prev + 1);
       }
     } else {
-      const collectedMessages = getAllErrorMessages(errors);
+      const collectedMessages = getAllErrorMessages(methods.formState.errors); // Use methods.formState.errors
       let toastDescription = "Please correct the errors on the current step:";
       if (collectedMessages.length > 0) {
         toastDescription += "\n\n- " + collectedMessages.join('\n- ');
       } else if (!isValid && currentStepFields.length > 0) { 
         toastDescription += "\n\nPlease review all fields for missing or invalid entries.";
+      } else if (!customValidationPassed) {
+        // This case might already be covered by getAllErrorMessages if setError was used.
+        // But if custom logic didn't use setError, this is a fallback.
+         toastDescription += "\n\nPlease review the highlighted fields.";
       }
 
 
@@ -379,7 +406,7 @@ export function PropertyForm() {
   };
 
   const handleBreadcrumbClick = (stepId: number) => {
-     if (completedSteps.has(stepId) || stepId < currentStep) {
+     if ((completedSteps.has(stepId) || stepId < currentStep) && stepId !== currentStep) { // only navigate if not current
       setCurrentStep(stepId);
     }
   };
@@ -388,23 +415,23 @@ export function PropertyForm() {
 
   return (
     <FormProvider {...methods}>
-      <Card className="w-full max-w-3xl mx-auto shadow-2xl">
+      <Card className="w-full max-w-5xl mx-auto shadow-2xl"> {/* Increased max-width */}
         <CardHeader className="pb-2 pt-4"> 
           <CardTitle
             className="text-2xl md:text-3xl text-center font-bold" 
-            style={{ color: '#8c1c19' }} 
           >
-            <div>Cudd Realty</div>
-            <div>Measurement Form</div>
+            <div style={{ color: '#8c1c19' }}>Cudd Realty</div>
+            <div style={{ color: '#8c1c19' }}>Measurement Form</div>
           </CardTitle>
            <HorizontalBreadcrumb 
-            currentStep={currentStep} 
+            currentStepId={currentStep} 
             completedSteps={completedSteps}
             onStepClick={handleBreadcrumbClick}
+            stepsConfig={steps}
           />
         </CardHeader>
         <form onSubmit={handleSubmit(processForm)}>
-          <CardContent className="min-h-[300px] py-6">
+          <CardContent className="min-h-[300px] py-6 px-4 md:px-6">
             <ActiveStepComponent />
           </CardContent>
           <CardFooter className="flex flex-col pt-6 border-t">
@@ -427,7 +454,7 @@ export function PropertyForm() {
                 </Button>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-6 text-center w-full">
+             <p className="text-xs text-muted-foreground mt-6 text-center w-full">
               (/◕ヮ◕)/   Made with GoodHelpAI
             </p>
           </CardFooter>
@@ -436,4 +463,3 @@ export function PropertyForm() {
     </FormProvider>
   );
 }
-
