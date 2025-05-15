@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from 'react';
-import { useForm, FormProvider, type SubmitHandler } from 'react-hook-form';
+import { useForm, FormProvider, type SubmitHandler, type FieldPath } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { propertySchema, type PropertyFormData } from '@/lib/schema';
 import { Button } from '@/components/ui/button';
@@ -36,13 +36,58 @@ const steps = [
   { id: 7, title: 'Review & Submit', component: ReviewStep, fields: [] },
 ];
 
+// Helper function to recursively collect all error messages from RHF's error state
+function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
+  let messages: string[] = [];
+  if (!errorsObject) return messages;
+
+  for (const key in errorsObject) {
+    if (Object.prototype.hasOwnProperty.call(errorsObject, key)) {
+      const errorField = errorsObject[key];
+      const currentPath = pathPrefix ? `${pathPrefix}.${key}` : key;
+
+      if (errorField) {
+        if (typeof errorField.message === 'string') {
+          let fieldName = currentPath;
+          // Make room error paths more user-friendly
+          if (fieldName.startsWith('rooms.')) {
+            fieldName = fieldName.replace(/^rooms\.(\d+)\.(.*)$/, (match, index, field) => {
+              let readableField = field.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim(); 
+              if (field === 'roomType') readableField = 'room type';
+              else if (field === 'garageLength') readableField = 'garage length';
+              else if (field === 'garageWidth') readableField = 'garage width';
+              else if (field === 'garageCarCount') readableField = 'garage car count';
+              else if (field === 'garageDoorOpeners') readableField = 'garage door openers';
+              return `Room ${parseInt(index) + 1} ${readableField.charAt(0).toUpperCase() + readableField.slice(1)}`;
+            });
+          } else {
+             fieldName = fieldName.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim();
+             fieldName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+          }
+          messages.push(`${fieldName}: ${errorField.message}`);
+        } else if (Array.isArray(errorField)) {
+          errorField.forEach((item, index) => {
+            if (item) { // Only process if there's an error object for this item
+              messages = messages.concat(getAllErrorMessages(item, `${currentPath}.${index}`));
+            }
+          });
+        } else if (typeof errorField === 'object' && !errorField.type /* Check if it's a nested errors object and not a FieldError itself */) {
+          messages = messages.concat(getAllErrorMessages(errorField, currentPath));
+        }
+      }
+    }
+  }
+  return messages.filter(Boolean); // Remove any undefined/empty messages
+}
+
+
 export function PropertyForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const { toast } = useToast();
 
   const methods = useForm<PropertyFormData>({
     resolver: zodResolver(propertySchema),
-    mode: 'onTouched',
+    mode: 'onTouched', // Consider 'onChange' or 'onBlur' if more immediate feedback is desired. 'onTouched' is a good balance.
     defaultValues: {
       address: '',
       city: '',
@@ -54,10 +99,10 @@ export function PropertyForm() {
       hasHOA: false,
       hoaDues: undefined,
       rooms: [],
-      carportPresent: 'no', // Updated default
+      carportPresent: 'no',
       carportLength: undefined,
       carportWidth: undefined,
-      rvPadPresent: 'no', // Updated default
+      rvPadPresent: 'no',
       rvPadLength: undefined,
       rvPadWidth: undefined,
       flooringTypes: [],
@@ -108,13 +153,27 @@ export function PropertyForm() {
     const currentStepConfig = steps[currentStep - 1];
     const currentStepFields = currentStepConfig.fields as (keyof PropertyFormData)[];
     
-    // Clear previous manual errors for current step fields before re-validating
-    currentStepFields.forEach(field => clearErrors(field));
+    // Clear previous manual errors for current step's specific custom validations
+    if (currentStepConfig.title === 'Room Specifications') {
+      const rooms = methods.getValues('rooms');
+      rooms?.forEach((_room, index) => {
+        clearErrors(`rooms.${index}.garageLength` as const);
+        clearErrors(`rooms.${index}.garageWidth` as const);
+      });
+    } else if (currentStepConfig.title === 'Property Details') {
+        clearErrors('hoaDues');
+    } else if (currentStepConfig.title === 'Flooring') {
+        clearErrors('otherFlooringType');
+    } else if (currentStepConfig.title === 'Additional Details & Features') {
+        clearErrors('acOtherType');
+    }
+    // For Zod errors or general field errors, `trigger` will update them.
+    // No need to call clearErrors broadly for Zod-managed fields if re-triggering.
     
     const isValid = currentStepFields.length > 0 ? await trigger(currentStepFields, { shouldFocus: true }) : true;
     
     let customValidationPassed = true;
-    // Custom validation logic
+    // Custom validation logic, setError will update methods.formState.errors
     if (currentStepConfig.title === 'Property Details') {
       if (methods.getValues('hasHOA') && (methods.getValues('hoaDues') === undefined || methods.getValues('hoaDues') === null || methods.getValues('hoaDues')! <= 0)) {
         setError('hoaDues', { type: 'manual', message: 'HOA dues are required if HOA is selected and must be positive.' });
@@ -139,11 +198,11 @@ export function PropertyForm() {
         if (room.roomType === 'garage') {
           if (room.garageCarCount && room.garageCarCount !== 'none' && room.garageCarCount !== '') {
             if (room.garageLength === undefined || room.garageLength <=0) {
-               setError(`rooms.${index}.garageLength` as const, { type: 'manual', message: 'Garage length required for selected car count.' });
+               setError(`rooms.${index}.garageLength` as const, { type: 'manual', message: 'Length required if car count specified.' });
                customValidationPassed = false;
             }
             if (room.garageWidth === undefined || room.garageWidth <=0) {
-               setError(`rooms.${index}.garageWidth` as const, { type: 'manual', message: 'Garage width required for selected car count.' });
+               setError(`rooms.${index}.garageWidth` as const, { type: 'manual', message: 'Width required if car count specified.' });
                customValidationPassed = false;
             }
           }
@@ -157,32 +216,20 @@ export function PropertyForm() {
         setCurrentStep((prev) => prev + 1);
       }
     } else {
-       const fieldErrors = Object.keys(errors);
-       let errorMessages = "Please correct the errors on the current step: ";
-       if(fieldErrors.length > 0) {
-         errorMessages += fieldErrors.map(fieldName => {
-            const field = fieldName as keyof PropertyFormData; // Type assertion
-            return errors[field]?.message;
-         }).filter(Boolean).join('; ');
-       } else if (!customValidationPassed) {
-          // Add messages from manual setError calls if no RHF errors
-          if (methods.formState.errors.hoaDues?.message) errorMessages += methods.formState.errors.hoaDues.message + "; ";
-          if (methods.formState.errors.otherFlooringType?.message) errorMessages += methods.formState.errors.otherFlooringType.message + "; ";
-          if (methods.formState.errors.acOtherType?.message) errorMessages += methods.formState.errors.acOtherType.message + "; ";
-          // Add errors from rooms array
-          methods.getValues('rooms')?.forEach((_room, index) => {
-            const garageLengthError = methods.formState.errors.rooms?.[index]?.garageLength?.message;
-            const garageWidthError = methods.formState.errors.rooms?.[index]?.garageWidth?.message;
-            if (garageLengthError) errorMessages += `Room ${index+1}: ${garageLengthError}; `;
-            if (garageWidthError) errorMessages += `Room ${index+1}: ${garageWidthError}; `;
-          });
-       }
-
+      const collectedMessages = getAllErrorMessages(methods.formState.errors);
+      let toastDescription = "Please correct the errors on the current step:";
+      if (collectedMessages.length > 0) {
+        toastDescription += "\n\n- " + collectedMessages.join('\n- ');
+      } else {
+        // This case should ideally not happen if validation fails, as errors should be in formState
+        toastDescription += "\n\nPlease review all fields for missing or invalid entries.";
+      }
 
       toast({
         title: "Validation Error",
-        description: errorMessages || "Please check the form for errors.",
+        description: <pre className="whitespace-pre-wrap text-xs">{toastDescription}</pre>,
         variant: "destructive",
+        duration: 5000, // Give a bit more time to read
       });
     }
   };
@@ -235,4 +282,3 @@ export function PropertyForm() {
     </FormProvider>
   );
 }
-
