@@ -7,10 +7,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { propertySchema, type PropertyFormData } from '@/lib/schema';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress'; // Added Progress import
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, Send, Check, Home, ListChecks, LayoutGrid, Car, Layers, Wrench, FileCheck2, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-// import Image from 'next/image'; // Logo removed
 
 import { BasicInfoStep } from './property-form/basic-info-step';
 import { PropertyDetailsStep } from './property-form/property-details-step';
@@ -25,24 +25,24 @@ interface StepConfig {
   title: string;
   component: React.FC;
   fields: FieldPath<PropertyFormData>[];
-  icon: LucideIcon;
+  // icon property removed
 }
 
 const steps: StepConfig[] = [
-  { id: 1, title: 'Basic Info', component: BasicInfoStep, fields: ['address', 'city', 'state', 'zip', 'propertyType'], icon: Home },
-  { id: 2, title: 'Prop Details', component: PropertyDetailsStep, fields: ['overallBedrooms', 'overallBathrooms', 'hasHOA', 'hoaDues'], icon: ListChecks },
-  { id: 3, title: 'Room Specs', component: RoomsStep, fields: ['rooms'], icon: LayoutGrid },
-  { id: 4, title: 'Parking Pads', component: GarageCarportStep, fields: ['carportPresent', 'carportLength', 'carportWidth', 'rvPadPresent', 'rvPadLength', 'rvPadWidth'], icon: Car },
-  { id: 5, title: 'Flooring', component: FlooringStep, fields: ['flooringTypes', 'otherFlooringType'], icon: Layers },
-  { id: 6, title: 'Extra Details', component: AdditionalDetailsStep, fields: [
+  { id: 1, title: 'Basic Information', component: BasicInfoStep, fields: ['address', 'city', 'state', 'zip', 'propertyType'] },
+  { id: 2, title: 'Property Details', component: PropertyDetailsStep, fields: ['overallBedrooms', 'overallBathrooms', 'hasHOA', 'hoaDues'] },
+  { id: 3, title: 'Room Specifications', component: RoomsStep, fields: ['rooms'] },
+  { id: 4, title: 'Carport & RV Pad', component: GarageCarportStep, fields: ['carportPresent', 'carportLength', 'carportWidth', 'rvPadPresent', 'rvPadLength', 'rvPadWidth'] },
+  { id: 5, title: 'Flooring', component: FlooringStep, fields: ['flooringTypes', 'otherFlooringType'] },
+  { id: 6, title: 'Additional Details & Features', component: AdditionalDetailsStep, fields: [
     'patios', 'sheds', 'hasDeck', 'fenceHeight', 'fenceMaterial', 'fenceStyle',
     'fireplaceCount', 'fireplaceTypeWood', 'fireplaceTypeGas', 'fireplaceFeaturesLogs', 'fireplaceFeaturesElectricStarter', 'fireplaceVaultedCeilings',
     'programmableThermostat', 'waterHeater', 'acType', 'acOtherType', 'heatType',
     'hasPool', 'hasHotTub', 'hasSprinklers', 'hasAlarm', 'smokeDetectorCount',
     'backyardFeatures', 'communityAmenities',
     'description'
-  ], icon: Wrench },
-  { id: 7, title: 'Review Form', component: ReviewStep, fields: [], icon: FileCheck2 },
+  ] },
+  { id: 7, title: 'Review & Submit', component: ReviewStep, fields: [] },
 ];
 
 const N8N_WEBHOOK_URL = 'https://goodhelpai-n8n.onrender.com/webhook-test/06703c6e-8f0a-415c-b55b-99f33003db26';
@@ -83,96 +83,30 @@ function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
           messages.push(`${fieldName}: ${errorField.message}`);
         } else if (Array.isArray(errorField)) {
           errorField.forEach((item, index) => {
-            if (item) { 
+            if (item) {
               messages = messages.concat(getAllErrorMessages(item, `${currentPath}.${index}`));
             }
           });
-        } else if (typeof errorField === 'object' && !errorField.type ) { 
+        } else if (typeof errorField === 'object' && !errorField.type ) {
           messages = messages.concat(getAllErrorMessages(errorField, currentPath));
         }
       }
     }
   }
-  return messages.filter(Boolean); 
+  return messages.filter(Boolean);
 }
 
-interface HorizontalBreadcrumbProps {
-  currentStepId: number;
-  completedSteps: Set<number>;
-  onStepClick: (stepId: number) => void;
-  stepsConfig: StepConfig[];
-}
-
-const HorizontalBreadcrumb: React.FC<HorizontalBreadcrumbProps> = ({ currentStepId, completedSteps, onStepClick, stepsConfig }) => {
-  const activeColor = "#56667a"; // Primary active/completed color
-  const upcomingBgColor = "bg-slate-100"; // Lighter gray for upcoming
-  const upcomingTextColor = "text-slate-500";
-  const completedBgColor = "bg-white";
-  const arrowWidth = "12px"; // Width of the pointy part of the arrow
-
-  return (
-    <div className="flex w-full overflow-x-auto py-4 -mx-1">
-      {stepsConfig.map((step, index) => {
-        const isCompleted = completedSteps.has(step.id);
-        const isCurrent = currentStepId === step.id;
-        
-        let clipPathStyle = '';
-        if (index === 0 && stepsConfig.length === 1) { // Single item
-          clipPathStyle = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
-        } else if (index === 0) { // First item
-          clipPathStyle = `polygon(0% 0%, calc(100% - ${arrowWidth}) 0%, 100% 50%, calc(100% - ${arrowWidth}) 100%, 0% 100%)`;
-        } else if (index === stepsConfig.length - 1) { // Last item
-          clipPathStyle = `polygon(${arrowWidth} 0%, 100% 0%, 100% 100%, ${arrowWidth} 100%, 0% 50%)`;
-        } else { // Middle items
-          clipPathStyle = `polygon(${arrowWidth} 0%, calc(100% - ${arrowWidth}) 0%, 100% 50%, calc(100% - ${arrowWidth}) 100%, ${arrowWidth} 100%, 0% 50%)`;
-        }
-
-        const Icon = step.icon;
-
-        return (
-          <div
-            key={step.id}
-            className={cn(
-              "relative flex items-center justify-center h-10 min-w-[120px] sm:min-w-[140px] flex-1 transition-colors duration-200 ease-in-out shadow-sm",
-              isCurrent ? `text-white` : (isCompleted ? `text-[${activeColor}]` : upcomingTextColor),
-              isCompleted && !isCurrent && "cursor-pointer hover:opacity-90",
-              index > 0 ? `-ml-[${arrowWidth}]` : "",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            )}
-            style={{
-              backgroundColor: isCurrent ? activeColor : (isCompleted ? 'white' : 'rgb(241 245 249)'), // slate-100 for upcoming
-              clipPath: clipPathStyle,
-              zIndex: stepsConfig.length - index, // Higher z-index for items on the left to be "under"
-              borderRight: index < stepsConfig.length - 1 ? `1px solid ${isCurrent || isCompleted ? activeColor : 'rgb(226, 232, 240)'}` : 'none', // slate-200
-              borderTop: `1px solid ${isCurrent || isCompleted ? activeColor : 'rgb(226, 232, 240)'}`,
-              borderBottom: `1px solid ${isCurrent || isCompleted ? activeColor : 'rgb(226, 232, 240)'}`,
-              borderLeft: index === 0 ? `1px solid ${isCurrent || isCompleted ? activeColor : 'rgb(226, 232, 240)'}` : 'none',
-            }}
-            onClick={() => (isCompleted || isCurrent) && !isCurrent && onStepClick(step.id)} // Allow clicking current to "refresh", or completed
-            role="button"
-            tabIndex={(isCompleted || isCurrent) && !isCurrent ? 0 : -1}
-            aria-current={isCurrent ? "step" : undefined}
-            aria-label={`Step ${step.id}: ${step.title}`}
-          >
-            <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5", isCurrent ? "mr-1 sm:mr-2" : "mr-1 sm:mr-2")} />
-            <span className="text-xs sm:text-sm font-medium truncate px-1">{step.title}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
+// HorizontalBreadcrumb component removed
 
 export function PropertyForm() {
   const [currentStep, setCurrentStep] = useState(1);
-  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  // completedSteps state removed
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const methods = useForm<PropertyFormData>({
     resolver: zodResolver(propertySchema),
-    mode: 'onTouched', 
+    mode: 'onTouched',
     defaultValues: {
       address: '',
       city: '',
@@ -217,9 +151,6 @@ export function PropertyForm() {
       backyardFeatures: [],
       communityAmenities: [],
       description: '',
-      // interiorFeatures: [], // Removed
-      // exteriorFeatures: [], // Removed
-      // landscapingDescription: '', // Removed
     },
   });
 
@@ -255,10 +186,6 @@ export function PropertyForm() {
                 description: "Property data successfully sent to n8n workflow.",
                 variant: "default",
             });
-             // Potentially reset form or navigate away
-            // methods.reset(); // Resets form to defaultValues
-            // setCurrentStep(1);
-            // setCompletedSteps(new Set());
         } else {
             const errorData = await response.text();
             console.error('Failed to send to n8n:', response.status, errorData);
@@ -292,18 +219,18 @@ export function PropertyForm() {
 
     Object.keys(errors).forEach(key => {
       const fieldKey = key as FieldPath<PropertyFormData>;
-      if (currentStepFields.includes(fieldKey) || 
-          (currentStepConfig.title === 'Prop Details' && fieldKey === 'hoaDues') ||
+      if (currentStepFields.includes(fieldKey) ||
+          (currentStepConfig.title === 'Property Details' && fieldKey === 'hoaDues') ||
           (currentStepConfig.title === 'Flooring' && fieldKey === 'otherFlooringType') ||
-          (currentStepConfig.title === 'Extra Details' && fieldKey === 'acOtherType') ||
-          (currentStepConfig.title === 'Room Specs' && fieldKey.startsWith('rooms.'))
+          (currentStepConfig.title === 'Additional Details & Features' && fieldKey === 'acOtherType') ||
+          (currentStepConfig.title === 'Room Specifications' && fieldKey.startsWith('rooms.'))
       ) {
         clearErrors(fieldKey);
       }
     });
-    
+
     const rooms = getValues('rooms');
-    if (currentStepConfig.title === 'Room Specs' && rooms) {
+    if (currentStepConfig.title === 'Room Specifications' && rooms) {
       rooms.forEach((_room, index) => {
         clearErrors(`rooms.${index}.roomType` as const);
         clearErrors(`rooms.${index}.length` as const);
@@ -322,7 +249,7 @@ export function PropertyForm() {
     const isValid = currentStepFields.length > 0 ? await trigger(currentStepFields, { shouldFocus: true }) : true;
 
     let customValidationPassed = true;
-    if (currentStepConfig.title === 'Prop Details') {
+    if (currentStepConfig.title === 'Property Details') {
       if (getValues('hasHOA') && (getValues('hoaDues') === undefined || getValues('hoaDues') === null || getValues('hoaDues')! <= 0)) {
         setError('hoaDues', { type: 'manual', message: 'HOA dues are required if HOA is selected and must be positive.' });
         customValidationPassed = false;
@@ -334,20 +261,20 @@ export function PropertyForm() {
         customValidationPassed = false;
       }
     }
-     if (currentStepConfig.title === 'Extra Details') {
+     if (currentStepConfig.title === 'Additional Details & Features') { // Corrected title check
       if (getValues('acType') === 'other' && (!getValues('acOtherType') || getValues('acOtherType')!.trim() === '')) {
         setError('acOtherType', {type: 'manual', message: 'Please specify other A/C type.'});
         customValidationPassed = false;
       }
     }
-    if (currentStepConfig.title === 'Room Specs' && rooms) {
+    if (currentStepConfig.title === 'Room Specifications' && rooms) {
       rooms.forEach((room, index) => {
          if (!room.roomType || room.roomType.trim() === '') {
             setError(`rooms.${index}.roomType` as const, { type: 'manual', message: 'Room type is required.' });
             customValidationPassed = false;
         }
         if (room.roomType && room.roomType !== 'garage') {
-            if ((room.length === undefined || room.length <= 0) && (room.roomType !== 'half_bathroom' && room.roomType !== 'bathroom') ){ // Bathrooms can be small
+            if ((room.length === undefined || room.length <= 0) && (room.roomType !== 'half_bathroom' && room.roomType !== 'bathroom') ){
                  setError(`rooms.${index}.length` as const, { type: 'manual', message: 'Positive length required.' });
                  customValidationPassed = false;
             }
@@ -372,23 +299,20 @@ export function PropertyForm() {
     }
 
     if (isValid && customValidationPassed) {
-      setCompletedSteps(prev => new Set(prev).add(currentStep));
+      // setCompletedSteps(prev => new Set(prev).add(currentStep)); // Removed
       if (currentStep < steps.length) {
         setCurrentStep((prev) => prev + 1);
       }
     } else {
-      const collectedMessages = getAllErrorMessages(methods.formState.errors); // Use methods.formState.errors
+      const collectedMessages = getAllErrorMessages(methods.formState.errors);
       let toastDescription = "Please correct the errors on the current step:";
       if (collectedMessages.length > 0) {
         toastDescription += "\n\n- " + collectedMessages.join('\n- ');
-      } else if (!isValid && currentStepFields.length > 0) { 
+      } else if (!isValid && currentStepFields.length > 0) {
         toastDescription += "\n\nPlease review all fields for missing or invalid entries.";
       } else if (!customValidationPassed) {
-        // This case might already be covered by getAllErrorMessages if setError was used.
-        // But if custom logic didn't use setError, this is a fallback.
          toastDescription += "\n\nPlease review the highlighted fields.";
       }
-
 
       toast({
         title: "Validation Error",
@@ -405,30 +329,27 @@ export function PropertyForm() {
     }
   };
 
-  const handleBreadcrumbClick = (stepId: number) => {
-     if ((completedSteps.has(stepId) || stepId < currentStep) && stepId !== currentStep) { // only navigate if not current
-      setCurrentStep(stepId);
-    }
-  };
+  // handleBreadcrumbClick function removed
 
   const ActiveStepComponent = steps[currentStep - 1].component;
+  const progressValue = (currentStep / steps.length) * 100;
 
   return (
     <FormProvider {...methods}>
-      <Card className="w-full max-w-5xl mx-auto shadow-2xl"> {/* Increased max-width */}
-        <CardHeader className="pb-2 pt-4"> 
+      <Card className="w-full max-w-5xl mx-auto shadow-2xl">
+        <CardHeader className="pb-4 pt-6">
           <CardTitle
-            className="text-2xl md:text-3xl text-center font-bold" 
+            className="text-2xl md:text-3xl text-center font-bold"
           >
             <div style={{ color: '#8c1c19' }}>Cudd Realty</div>
             <div style={{ color: '#8c1c19' }}>Measurement Form</div>
           </CardTitle>
-           <HorizontalBreadcrumb 
-            currentStepId={currentStep} 
-            completedSteps={completedSteps}
-            onStepClick={handleBreadcrumbClick}
-            stepsConfig={steps}
-          />
+          <div className="pt-4 text-center">
+            <p className="text-sm text-muted-foreground mb-2">
+              Step {currentStep} of {steps.length}: {steps[currentStep - 1].title}
+            </p>
+            <Progress value={progressValue} className="w-full" />
+          </div>
         </CardHeader>
         <form onSubmit={handleSubmit(processForm)}>
           <CardContent className="min-h-[300px] py-6 px-4 md:px-6">
