@@ -9,9 +9,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { XCircle, Wind, PlugZap, ChefHat } from 'lucide-react';
+import { XCircle, Wind, PlugZap, ChefHat, Warehouse } from 'lucide-react';
 import type { PropertyFormData, KitchenDetails } from '@/lib/schema';
-import { ROOM_TYPES, type RoomTypeOption, YES_NO_NA_OPTIONS, FRIDGE_OPTIONS, RANGE_TYPE_OPTIONS, RANGE_OVEN_OPTIONS, COOKTOP_TYPE_OPTIONS, KITCHEN_COUNTERTOP_OPTIONS } from '@/lib/constants';
+import { 
+  ROOM_TYPES, type RoomTypeOption, YES_NO_NA_OPTIONS, 
+  FRIDGE_OPTIONS, RANGE_TYPE_OPTIONS, RANGE_OVEN_OPTIONS, COOKTOP_TYPE_OPTIONS, KITCHEN_COUNTERTOP_OPTIONS,
+  GARAGE_CAR_COUNT_OPTIONS, GARAGE_DOOR_OPENER_OPTIONS 
+} from '@/lib/constants';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
@@ -39,6 +43,11 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
   const roomPathPrefix = `rooms.${index}` as const;
   const roomTypePath = `${roomPathPrefix}.roomType` as const;
   const kitchenDetailsPath = `${roomPathPrefix}.kitchenDetails` as const;
+  const garageCarCountPath = `${roomPathPrefix}.garageCarCount` as const;
+  const garageDoorOpenersPath = `${roomPathPrefix}.garageDoorOpeners` as const;
+  const garageLengthPath = `${roomPathPrefix}.garageLength` as const;
+  const garageWidthPath = `${roomPathPrefix}.garageWidth` as const;
+
 
   const selectedRoomTypeId = watch(roomTypePath);
   const RoomIcon = ROOM_TYPES.find(rt => rt.id === selectedRoomTypeId)?.icon;
@@ -94,6 +103,12 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
                   field.onChange(value);
                   // Reset conditional fields when type changes
                   if (value !== 'kitchen') setValue(kitchenDetailsPath, undefined);
+                  if (value !== 'garage') {
+                    setValue(garageCarCountPath, undefined);
+                    setValue(garageDoorOpenersPath, undefined);
+                    setValue(garageLengthPath, undefined);
+                    setValue(garageWidthPath, undefined);
+                  }
                   setValue(`${roomPathPrefix}.fan`, 'na');
                   setValue(`${roomPathPrefix}.washerDryerHookups`, 'na');
                 }} 
@@ -123,11 +138,11 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
           <FormField
             control={control}
             name={`${roomPathPrefix}.length`}
-            render={({ field }) => (
+            render={({ field: f }) => (
               <FormItem>
                 <FormLabel>Length (ft)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 12" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} />
+                  <Input type="number" placeholder="e.g., 12" {...f} value={f.value ?? ''} onChange={e => f.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -136,11 +151,11 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
           <FormField
             control={control}
             name={`${roomPathPrefix}.width`}
-            render={({ field }) => (
+            render={({ field: f }) => (
               <FormItem>
                 <FormLabel>Width (ft)</FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="e.g., 10" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} />
+                  <Input type="number" placeholder="e.g., 10" {...f} value={f.value ?? ''} onChange={e => f.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -171,10 +186,10 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
                 <FormControl>
                   <RadioGroup
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value || 'na'}
                     className="flex space-x-2"
                   >
-                    {YES_NO_NA_OPTIONS.map(option => ( // Changed from YES_NO_OPTIONS
+                    {YES_NO_NA_OPTIONS.map(option => ( 
                       <FormItem key={option.id} className="flex items-center space-x-2 space-y-0">
                         <FormControl>
                           <RadioGroupItem value={option.id} />
@@ -200,10 +215,10 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
                 <FormControl>
                   <RadioGroup
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value || 'na'}
                     className="flex space-x-2"
                   >
-                     {YES_NO_NA_OPTIONS.map(option => ( // Changed from YES_NO_OPTIONS
+                     {YES_NO_NA_OPTIONS.map(option => ( 
                       <FormItem key={option.id} className="flex items-center space-x-2 space-y-0">
                         <FormControl>
                           <RadioGroupItem value={option.id} />
@@ -324,8 +339,73 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
               />
           </div>
         )}
+
+        {isGarage && (
+          <div className="space-y-4 pt-4 border-t mt-4">
+            <h4 className="text-md font-semibold flex items-center"><Warehouse className="mr-2 h-5 w-5 text-primary" />Garage Details</h4>
+            <FormField
+              control={control}
+              name={garageCarCountPath}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Number of Garage Spaces</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Select garage capacity" /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      {GARAGE_CAR_COUNT_OPTIONS.map(option => (
+                        <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={control}
+                name={garageLengthPath}
+                render={({ field: f }) => (
+                  <FormItem>
+                    <FormLabel>Garage Length (ft)</FormLabel>
+                    <FormControl><Input type="number" placeholder="e.g., 20" {...f} value={f.value ?? ''} onChange={e => f.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={control}
+                name={garageWidthPath}
+                render={({ field: f }) => (
+                  <FormItem>
+                    <FormLabel>Garage Width (ft)</FormLabel>
+                    <FormControl><Input type="number" placeholder="e.g., 20" {...f} value={f.value ?? ''} onChange={e => f.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <FormField
+              control={control}
+              name={garageDoorOpenersPath}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Number of Garage Door Openers</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Select number of openers" /></SelectTrigger></FormControl>
+                    <SelectContent>
+                      {GARAGE_DOOR_OPENER_OPTIONS.map(option => (
+                        <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
-

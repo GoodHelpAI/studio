@@ -46,6 +46,11 @@ export const RoomSchema = z.object({
   fan: z.enum(['yes', 'no', 'na', '']).default('na').optional(),
   washerDryerHookups: z.enum(['yes', 'no', 'na', '']).default('na').optional(),
   kitchenDetails: KitchenDetailsSchema,
+  // Garage specific fields, only relevant if roomType is 'garage'
+  garageCarCount: z.enum(['1', '2', '3', 'none', '']).default('').optional(),
+  garageDoorOpeners: z.enum(['0', '1', '2', '3', '']).default('').optional(),
+  garageLength: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Length must be positive").optional()),
+  garageWidth: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Width must be positive").optional()),
 });
 export type Room = z.infer<typeof RoomSchema>;
 
@@ -90,11 +95,7 @@ export const propertySchema = z.object({
   // Rooms
   rooms: z.array(RoomSchema).optional(),
 
-  // Garage, Carport, RV Pad
-  garageCarCount: z.enum(['1', '2', '3', 'none', '']).default('').optional(),
-  garageDoorOpeners: z.enum(['0', '1', '2', '3', '']).default('').optional(), // Added '0'
-  garageLength: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Length must be positive").optional()),
-  garageWidth: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Width must be positive").optional()),
+  // Carport, RV Pad (Garage details moved to RoomSchema)
   carportPresent: z.boolean().default(false).optional(),
   carportLength: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Length must be positive").optional()),
   carportWidth: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Width must be positive").optional()),
@@ -125,9 +126,9 @@ export const propertySchema = z.object({
   programmableThermostat: z.boolean().default(false).optional(), // General home feature
 
   waterHeater: z.enum(['gas', 'electric', 'tankless', 'none', '']).default('').optional(),
-  acType: z.enum(['gas', 'electric', 'other', 'none', '']).default('').optional(),
+  acType: z.enum(['gas', 'electric', 'window_units', 'mini_split', 'other', 'none', '']).default('').optional(),
   acOtherType: z.string().optional(),
-  heatType: z.enum(['gas', 'electric', 'heat_pump', 'none', '']).default('').optional(),
+  heatType: z.enum(['gas', 'electric', 'heat_pump', 'radiant', 'other', 'none', '']).default('').optional(),
   
   hasPool: z.boolean().default(false).optional(),
   hasHotTub: z.boolean().default(false).optional(),
@@ -173,5 +174,3 @@ export const propertySchema = z.object({
 });
 
 export type PropertyFormData = z.infer<typeof propertySchema>;
-
-    

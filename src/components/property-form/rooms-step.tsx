@@ -22,7 +22,11 @@ export function RoomsStep() {
       features: '',
       fan: 'na', // default for fan
       washerDryerHookups: 'na', // default for W/D
-      kitchenDetails: undefined // Initialize as undefined
+      kitchenDetails: undefined, // Initialize as undefined
+      garageCarCount: '', // default for garage
+      garageDoorOpeners: '', // default for garage
+      garageLength: undefined, // default for garage
+      garageWidth: undefined, // default for garage
     });
   };
 
@@ -47,5 +51,3 @@ export function RoomsStep() {
     </div>
   );
 }
-
-    

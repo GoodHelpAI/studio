@@ -23,7 +23,7 @@ const steps = [
   { id: 1, title: 'Basic Information', component: BasicInfoStep, fields: ['address', 'city', 'state', 'zip', 'propertyType'] },
   { id: 2, title: 'Property Details', component: PropertyDetailsStep, fields: ['overallBedrooms', 'overallBathrooms', 'hasHOA', 'hoaDues'] },
   { id: 3, title: 'Room Specifications', component: RoomsStep, fields: ['rooms'] },
-  { id: 4, title: 'Garage, Carport & RV Pad', component: GarageCarportStep, fields: ['garageCarCount', 'garageDoorOpeners', 'garageLength', 'garageWidth', 'carportPresent', 'carportLength', 'carportWidth', 'rvPadPresent', 'rvPadLength', 'rvPadWidth'] },
+  { id: 4, title: 'Carport & RV Pad', component: GarageCarportStep, fields: ['carportPresent', 'carportLength', 'carportWidth', 'rvPadPresent', 'rvPadLength', 'rvPadWidth'] },
   { id: 5, title: 'Flooring', component: FlooringStep, fields: ['flooringTypes', 'otherFlooringType'] },
   { id: 6, title: 'Additional Details & Features', component: AdditionalDetailsStep, fields: [
     'patios', 'sheds', 'hasDeck', 'fenceHeight', 'fenceMaterial', 'fenceStyle', 
@@ -54,10 +54,7 @@ export function PropertyForm() {
       hasHOA: false,
       hoaDues: undefined,
       rooms: [],
-      garageCarCount: '',
-      garageDoorOpeners: '',
-      garageLength: undefined,
-      garageWidth: undefined,
+      // Garage fields removed from top level, now part of RoomSchema
       carportPresent: false,
       carportLength: undefined,
       carportWidth: undefined,
@@ -137,6 +134,32 @@ export function PropertyForm() {
         customValidationPassed = false;
       }
     }
+    // Add custom validation for rooms if needed, e.g. garage dimensions if garageCarCount > 0
+    if (currentStepConfig.title === 'Room Specifications') {
+      const rooms = methods.getValues('rooms');
+      rooms?.forEach((room, index) => {
+        if (room.roomType === 'garage') {
+          if (room.garageCarCount && room.garageCarCount !== 'none') {
+            if (room.garageLength === undefined || room.garageLength <=0) {
+               setError(`rooms.${index}.garageLength` as const, { type: 'manual', message: 'Garage length required for selected car count.' });
+               customValidationPassed = false;
+            }
+            if (room.garageWidth === undefined || room.garageWidth <=0) {
+               setError(`rooms.${index}.garageWidth` as const, { type: 'manual', message: 'Garage width required for selected car count.' });
+               customValidationPassed = false;
+            }
+          }
+        }
+        // Check kitchen details
+        if (room.roomType === 'kitchen' && room.kitchenDetails?.otherKTop && 
+            !room.kitchenDetails.corianKTop && !room.kitchenDetails.graniteKTop && 
+            !room.kitchenDetails.laminateKTop && !room.kitchenDetails.tileKTop) {
+            // This logic might be too complex or better handled by schema if "Other KTop" implies "other" was selected in a hypothetical countertop type select
+        }
+
+      });
+    }
+
 
     if (isValid && customValidationPassed) {
       if (currentStep < steps.length) {
@@ -155,6 +178,13 @@ export function PropertyForm() {
           if (methods.formState.errors.hoaDues?.message) errorMessages += methods.formState.errors.hoaDues.message + "; ";
           if (methods.formState.errors.otherFlooringType?.message) errorMessages += methods.formState.errors.otherFlooringType.message + "; ";
           if (methods.formState.errors.acOtherType?.message) errorMessages += methods.formState.errors.acOtherType.message + "; ";
+          // Add errors from rooms array
+          methods.getValues('rooms')?.forEach((_room, index) => {
+            const garageLengthError = methods.formState.errors.rooms?.[index]?.garageLength?.message;
+            const garageWidthError = methods.formState.errors.rooms?.[index]?.garageWidth?.message;
+            if (garageLengthError) errorMessages += `Room ${index+1}: ${garageLengthError}; `;
+            if (garageWidthError) errorMessages += `Room ${index+1}: ${garageWidthError}; `;
+          });
        }
 
 
@@ -168,7 +198,7 @@ export function PropertyForm() {
 
   const handlePreviousStep = () => {
     if (currentStep > 1) {
-      setCurrentStep((prev) => prev - 1);
+      setCurrentStep((prev) => prev + 1);
     }
   };
 

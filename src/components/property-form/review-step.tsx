@@ -12,10 +12,10 @@ import {
   FENCE_HEIGHT_OPTIONS, FENCE_MATERIAL_OPTIONS, FENCE_STYLE_OPTIONS,
   WATER_HEATER_OPTIONS, AC_TYPE_OPTIONS, HEAT_TYPE_OPTIONS, SMOKE_DETECTOR_COUNT_OPTIONS,
   BACKYARD_FEATURE_OPTIONS, COMMUNITY_AMENITY_OPTIONS, FRIDGE_OPTIONS, RANGE_TYPE_OPTIONS,
-  RANGE_OVEN_OPTIONS, COOKTOP_TYPE_OPTIONS, FIREPLACE_COUNT_OPTIONS
+  RANGE_OVEN_OPTIONS, COOKTOP_TYPE_OPTIONS, FIREPLACE_COUNT_OPTIONS, YES_NO_NA_OPTIONS
 } from '@/lib/constants';
 import { cn } from '@/lib/utils';
-import { formatKitchenFeatureLabel } from './room-block'; // Assuming this utility is exported or recreated here
+import { formatKitchenFeatureLabel } from './room-block'; 
 
 const getLabelById = (id: string | number | undefined, options: Array<{id: string, label: string}>, returnIdAsFallback = true) => {
   if (id === undefined || id === null || String(id).trim() === '') return 'N/A';
@@ -58,6 +58,7 @@ const renderKitchenDetails = (details?: KitchenDetails) => {
       else if (key === 'rangeType') optionsArray = RANGE_TYPE_OPTIONS;
       else if (key === 'rangeOven') optionsArray = RANGE_OVEN_OPTIONS;
       else if (key === 'cooktopType') optionsArray = COOKTOP_TYPE_OPTIONS;
+      else if (key === 'otherKTop') { /* No options array for free text */ }
       // Add more specific option lookups if needed
       kitchenFeatures.push(<DisplayField key={key} label={formatKitchenFeatureLabel(key)} value={optionsArray ? getLabelById(value, optionsArray) : value} className="text-xs" />);
     }
@@ -79,13 +80,24 @@ export function ReviewStep() {
       </CardHeader>
       <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
         <DisplayField label="Dimensions" value={room.length && room.width ? `${room.length}ft x ${room.width}ft` : 'N/A'} />
-        {room.fan && room.fan !== 'na' && <DisplayField label="Fan" value={getLabelById(room.fan, [{id:'yes',label:'Yes'},{id:'no',label:'No'}])} />}
-        {room.washerDryerHookups && room.washerDryerHookups !== 'na' && <DisplayField label="W/D Hookups" value={getLabelById(room.washerDryerHookups, [{id:'yes',label:'Yes'},{id:'no',label:'No'}])} />}
+        {room.fan && room.fan !== 'na' && <DisplayField label="Fan" value={getLabelById(room.fan, YES_NO_NA_OPTIONS)} />}
+        {room.washerDryerHookups && room.washerDryerHookups !== 'na' && <DisplayField label="W/D Hookups" value={getLabelById(room.washerDryerHookups, YES_NO_NA_OPTIONS)} />}
         {room.features && <DisplayField label="Notes" value={room.features} className="col-span-full"/>}
+        
         {room.roomType === 'kitchen' && room.kitchenDetails && (
           <div className="col-span-full mt-2 pt-2 border-t">
             <h5 className="text-xs font-semibold mb-1 text-muted-foreground">Kitchen Details:</h5>
             {renderKitchenDetails(room.kitchenDetails)}
+          </div>
+        )}
+        {room.roomType === 'garage' && (
+          <div className="col-span-full mt-2 pt-2 border-t">
+            <h5 className="text-xs font-semibold mb-1 text-muted-foreground">Garage Details:</h5>
+            <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-1">
+              <DisplayField label="Garage Capacity" value={getLabelById(room.garageCarCount, GARAGE_CAR_COUNT_OPTIONS)} className="text-xs"/>
+              <DisplayField label="Garage Door Openers" value={getLabelById(room.garageDoorOpeners, GARAGE_DOOR_OPENER_OPTIONS)} className="text-xs"/>
+              <DisplayField label="Garage Dimensions" value={room.garageLength && room.garageWidth ? `${room.garageLength}ft x ${room.garageWidth}ft` : 'N/A'} className="text-xs"/>
+            </div>
           </div>
         )}
       </CardContent>
@@ -142,15 +154,8 @@ export function ReviewStep() {
           )}
 
           <div>
-            <h3 className="text-lg font-semibold mb-2 text-primary">Garage, Carport & RV Pad</h3>
+            <h3 className="text-lg font-semibold mb-2 text-primary">Carport & RV Pad</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <DisplayField label="Garage Capacity" value={getLabelById(data.garageCarCount, GARAGE_CAR_COUNT_OPTIONS)} />
-              {data.garageCarCount !== 'none' && data.garageCarCount && (
-                <>
-                  <DisplayField label="Garage Door Openers" value={getLabelById(data.garageDoorOpeners, GARAGE_DOOR_OPENER_OPTIONS)} />
-                  <DisplayField label="Garage Dimensions" value={data.garageLength && data.garageWidth ? `${data.garageLength}ft x ${data.garageWidth}ft` : 'N/A'} />
-                </>
-              )}
               <DisplayField label="Carport Present" value={formatBoolean(data.carportPresent)} />
               {data.carportPresent && <DisplayField label="Carport Dimensions" value={data.carportLength && data.carportWidth ? `${data.carportLength}ft x ${data.carportWidth}ft` : 'N/A'} />}
               <DisplayField label="RV Pad Present" value={formatBoolean(data.rvPadPresent)} />
@@ -191,6 +196,7 @@ export function ReviewStep() {
             <DisplayField label="A/C Type" value={getLabelById(data.acType, AC_TYPE_OPTIONS)} />
             {data.acType === 'other' && <DisplayField label="Other A/C Type" value={data.acOtherType} />}
             <DisplayField label="Heat Type" value={getLabelById(data.heatType, HEAT_TYPE_OPTIONS)} />
+            {data.heatType === 'other' && <DisplayField label="Other Heat Type" value={/* data.otherHeatType - need to add this field if heatType can be 'other' with specification */ 'N/A'} />}
             <DisplayField label="Pool" value={formatBoolean(data.hasPool)} />
             <DisplayField label="Hot Tub/Spa" value={formatBoolean(data.hasHotTub)} />
             <DisplayField label="Sprinkler System" value={formatBoolean(data.hasSprinklers)} />
@@ -218,5 +224,3 @@ export function ReviewStep() {
     </div>
   );
 }
-
-    
