@@ -20,13 +20,14 @@ export function RoomsStep() {
       length: undefined, 
       width: undefined, 
       features: '',
-      fan: 'no', // default for fan
-      washerDryerHookups: 'na', // default for W/D
-      kitchenDetails: undefined, // Initialize as undefined
-      garageCarCount: 'none', // default for garage
-      garageDoorOpeners: 'none', // default for garage
-      garageLength: undefined, // default for garage
-      garageWidth: undefined, // default for garage
+      fan: 'no', 
+      washerDryerHookups: 'na', 
+      hasWalkInCloset: false,
+      kitchenDetails: undefined, 
+      garageCarCount: 'none', 
+      garageDoorOpeners: 'none', 
+      garageLength: undefined, 
+      garageWidth: undefined, 
     });
   };
 
@@ -51,4 +52,3 @@ export function RoomsStep() {
     </div>
   );
 }
-

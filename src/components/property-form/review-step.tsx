@@ -7,12 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { 
-  PROPERTY_TYPES, ROOM_TYPES, INTERIOR_FEATURE_OPTIONS, EXTERIOR_FEATURE_OPTIONS, STATES_OPTIONS,
+  PROPERTY_TYPES, ROOM_TYPES, STATES_OPTIONS,
   GARAGE_CAR_COUNT_OPTIONS, GARAGE_DOOR_OPENER_OPTIONS, FLOORING_TYPE_OPTIONS,
   FENCE_HEIGHT_OPTIONS, FENCE_MATERIAL_OPTIONS, FENCE_STYLE_OPTIONS,
   WATER_HEATER_OPTIONS, AC_TYPE_OPTIONS, HEAT_TYPE_OPTIONS, SMOKE_DETECTOR_COUNT_OPTIONS,
   BACKYARD_FEATURE_OPTIONS, COMMUNITY_AMENITY_OPTIONS, FRIDGE_OPTIONS, RANGE_TYPE_OPTIONS,
   RANGE_OVEN_OPTIONS, COOKTOP_TYPE_OPTIONS, FIREPLACE_COUNT_OPTIONS, YES_NO_OPTIONS, YES_NO_NA_OPTIONS
+  // INTERIOR_FEATURE_OPTIONS, EXTERIOR_FEATURE_OPTIONS // No longer used here
 } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { formatKitchenFeatureLabel } from './room-block'; 
@@ -62,7 +63,6 @@ const renderKitchenDetails = (details?: KitchenDetails) => {
       else if (key === 'rangeOven') optionsArray = RANGE_OVEN_OPTIONS;
       else if (key === 'cooktopType') optionsArray = COOKTOP_TYPE_OPTIONS;
       else if (key === 'otherKTop') { /* No options array for free text */ }
-      // Add more specific option lookups if needed
       kitchenFeatures.push(<DisplayField key={key} label={formatKitchenFeatureLabel(key)} value={optionsArray ? getLabelById(value, optionsArray) : value} className="text-xs" />);
     }
   });
@@ -94,6 +94,9 @@ export function ReviewStep() {
         <DisplayField label="Dimensions" value={room.length && room.width ? `${room.length}ft x ${room.width}ft` : 'N/A'} />
         {room.fan && room.fan !== '' && <DisplayField label="Fan" value={getLabelById(room.fan, YES_NO_OPTIONS)} />}
         {room.washerDryerHookups && room.washerDryerHookups !== '' && <DisplayField label="W/D Hookups" value={getLabelById(room.washerDryerHookups, YES_NO_NA_OPTIONS)} />}
+        {(room.roomType === 'bedroom' || room.roomType === 'primary_bedroom') && room.hasWalkInCloset !== undefined &&
+          <DisplayField label="Walk-in Closet" value={formatBooleanYesNo(room.hasWalkInCloset)} />
+        }
         
         {room.roomType === 'kitchen' && room.kitchenDetails && (
           <div className="col-span-full mt-2 pt-2 border-t">
@@ -216,13 +219,13 @@ export function ReviewStep() {
             <DisplayField label="Smoke Detectors" value={getLabelById(data.smokeDetectorCount, SMOKE_DETECTOR_COUNT_OPTIONS, false)} />
 
             <h4 className="text-md font-medium mt-3 mb-1 text-muted-foreground">Landscaping & Community</h4>
-            <DisplayField label="Landscaping Description" value={data.landscapingDescription} />
+            {/* <DisplayField label="Landscaping Description" value={data.landscapingDescription} /> Removed */}
             <DisplayList label="Backyard Features" values={data.backyardFeatures} options={BACKYARD_FEATURE_OPTIONS} />
             <DisplayList label="Community Amenities" values={data.communityAmenities} options={COMMUNITY_AMENITY_OPTIONS} />
             
-            <h4 className="text-md font-medium mt-3 mb-1 text-muted-foreground">Other Notable Features</h4>
-            <DisplayList label="Interior Features" values={data.interiorFeatures} options={INTERIOR_FEATURE_OPTIONS} />
-            <DisplayList label="Exterior Features" values={data.exteriorFeatures} options={EXTERIOR_FEATURE_OPTIONS} />
+            <h4 className="text-md font-medium mt-3 mb-1 text-muted-foreground">Property Description</h4>
+            {/* DisplayList for interiorFeatures removed */}
+            {/* DisplayList for exteriorFeatures removed */}
             {data.description && (
               <div>
                 <p className="text-sm font-medium text-muted-foreground mt-3 mb-1">Additional Overall Description</p>
@@ -236,4 +239,3 @@ export function ReviewStep() {
     </div>
   );
 }
-

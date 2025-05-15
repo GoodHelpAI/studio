@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { XCircle, Wind, PlugZap, ChefHat, Warehouse } from 'lucide-react';
+import { XCircle, Wind, PlugZap, ChefHat, Warehouse, KeyRound } from 'lucide-react'; // KeyRound for Walk-in Closet
 import type { PropertyFormData, KitchenDetails, Room } from '@/lib/schema';
 import { 
   ROOM_TYPES, type RoomTypeOption, YES_NO_OPTIONS, YES_NO_NA_OPTIONS, 
@@ -33,8 +33,8 @@ const kitchenFeatureBooleanFields: (keyof KitchenDetails)[] = [
 
 export const formatKitchenFeatureLabel = (key: string) => {
   return key
-    .replace(/([A-Z])/g, ' $1') // Add space before uppercase letters
-    .replace(/^./, str => str.toUpperCase()); // Capitalize first letter
+    .replace(/([A-Z])/g, ' $1') 
+    .replace(/^./, str => str.toUpperCase()); 
 };
 
 
@@ -49,6 +49,7 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
   const garageWidthPath = `${roomPathPrefix}.garageWidth` as const;
   const fanPath = `${roomPathPrefix}.fan` as const;
   const washerDryerHookupsPath = `${roomPathPrefix}.washerDryerHookups` as const;
+  const hasWalkInClosetPath = `${roomPathPrefix}.hasWalkInCloset` as const;
 
 
   const selectedRoomTypeId = watch(roomTypePath);
@@ -59,11 +60,12 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
   const isBathroom = selectedRoomTypeId === 'bathroom' || selectedRoomTypeId === 'half_bathroom';
   const isGarage = selectedRoomTypeId === 'garage';
   const isUtility = selectedRoomTypeId === 'laundry' || selectedRoomTypeId === 'utility_room';
+  const isBedroomType = selectedRoomTypeId === 'bedroom' || selectedRoomTypeId === 'primary_bedroom';
 
   const showFanOptions = !isBathroom && !isGarage && selectedRoomTypeId;
   const showWasherDryerHookups = (isUtility || isGarage) && selectedRoomTypeId;
 
-  // Initialize kitchenDetails if room type is kitchen and details are not set
+
   if (isKitchen && !getValues(kitchenDetailsPath)) {
     setValue(kitchenDetailsPath, {
       island: false, raisedBar: false, eatInKitchen: false, graniteKTop: false, laminateKTop: false,
@@ -75,7 +77,7 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
     });
   }
 
-  // Dynamic card title
+
   let cardTitle = `Room ${index + 1}`;
   if (roomTypeDetails) {
     const allRooms = getValues('rooms') || [];
@@ -124,6 +126,9 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
                   }
                   setValue(fanPath, getValues(fanPath) || 'no');
                   setValue(washerDryerHookupsPath, getValues(washerDryerHookupsPath) || 'na');
+                  if (value !== 'bedroom' && value !== 'primary_bedroom') {
+                    setValue(hasWalkInClosetPath, false); 
+                  }
                 }} 
                 value={field.value || ''}
               >
@@ -190,7 +195,7 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
                     className="flex space-x-2"
                   >
                     {YES_NO_OPTIONS.map(option => ( 
-                      <FormItem key={option.id} className="flex items-center space-x-2 space-y-0">
+                      <FormItem key={`fan-${option.id}`} className="flex items-center space-x-2 space-y-0">
                         <FormControl>
                           <RadioGroupItem value={option.id} />
                         </FormControl>
@@ -219,7 +224,7 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
                     className="flex space-x-2"
                   >
                      {YES_NO_NA_OPTIONS.map(option => ( 
-                      <FormItem key={option.id} className="flex items-center space-x-2 space-y-0">
+                      <FormItem key={`wd-${option.id}`} className="flex items-center space-x-2 space-y-0">
                         <FormControl>
                           <RadioGroupItem value={option.id} />
                         </FormControl>
@@ -229,6 +234,21 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
                   </RadioGroup>
                 </FormControl>
                 <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {isBedroomType && (
+          <FormField
+            control={control}
+            name={hasWalkInClosetPath}
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center space-x-3 space-y-0 p-3 border rounded-md shadow-sm">
+                 <FormControl>
+                    <Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} />
+                  </FormControl>
+                <FormLabel className="font-normal flex items-center"><KeyRound className="mr-2 h-4 w-4 text-primary"/>Walk-in Closet?</FormLabel>
               </FormItem>
             )}
           />
@@ -406,7 +426,6 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
           </div>
         )}
 
-        {/* Moved Features/Notes to the bottom of the card content */}
         <FormField
           control={control}
           name={`${roomPathPrefix}.features`}
@@ -424,4 +443,3 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
     </Card>
   );
 }
-

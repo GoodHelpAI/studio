@@ -38,6 +38,8 @@ import {
   Warehouse, // Garage alt
   Caravan, // RV Pad
   SquareFoot, // Dimensions
+  Tv, // For Media Room
+  Gamepad2, // For Game Room
 } from 'lucide-react';
 
 export interface Option {
@@ -68,6 +70,8 @@ export const ROOM_TYPES: RoomTypeOption[] = [
   { id: 'half_bathroom', label: 'Half Bathroom', icon: DoorOpen },
   { id: 'office', label: 'Office', icon: Briefcase },
   { id: 'study', label: 'Study', icon: BookOpen },
+  { id: 'media_room', label: 'Media Room', icon: Tv },
+  { id: 'game_room', label: 'Game Room', icon: Gamepad2 },
   { id: 'laundry', label: 'Laundry Room', icon: WashingMachine },
   { id: 'garage', label: 'Garage', icon: Warehouse },
   { id: 'basement', label: 'Basement', icon: Archive },
@@ -228,37 +232,34 @@ export const COMMUNITY_AMENITY_OPTIONS: Option[] = [
 ];
 
 // Revised General Features (examples, can be expanded)
+// These are no longer directly used in chip groups in AdditionalDetailsStep but kept for potential other uses.
 export const INTERIOR_FEATURE_OPTIONS: Option[] = [
-  // 'fireplace' and 'vaulted_ceilings' moved or handled differently
-  { id: 'granite_countertops', label: 'Granite Countertops (General)' }, // if not kitchen specific
-  { id: 'stainless_steel_appliances', label: 'SS Appliances (General)' }, // if not kitchen specific
-  { id: 'walk_in_closet', label: 'Walk-in Closet(s)' },
-  { id: 'central_ac', label: 'Central A/C (if not covered by AC Type)' },
-  { id: 'updated_kitchen_general', label: 'Updated Kitchen (General)' },
+  { id: 'updated_kitchen_general', label: 'Updated Kitchen (General)' }, // Use if kitchen details aren't granular enough
   { id: 'updated_bathroom_general', label: 'Updated Bathroom(s) (General)' },
   { id: 'smart_home_features', label: 'Smart Home Features' },
-  { id: 'security_system_owned', label: 'Security System (Owned)' }, // Differentiate from 'hasAlarm'
-  { id: 'island_kitchen_general', label: 'Island Kitchen (General)'},
+  { id: 'security_system_owned', label: 'Security System (Owned)' },
   { id: 'high_ceilings', label: 'High Ceilings' },
-  { id: 'ceiling_fans_general', label: 'Ceiling Fans (General)' }, // If not room specific
-  { id: 'formal_dining', label: 'Formal Dining Room'},
-  { id: 'game_room', label: 'Game Room'},
-  { id: 'media_room', label: 'Media Room'},
+  { id: 'ceiling_fans_general', label: 'Ceiling Fans (General)' },
+  { id: 'formal_dining', label: 'Formal Dining Room'}, // if not captured as a separate room
+  // 'walk_in_closet' is now room-specific
+  // 'granite_countertops', 'stainless_steel_appliances', 'island_kitchen_general' handled in kitchen details
+  // 'central_ac' handled by AC_TYPE_OPTIONS
+  // 'fireplace', 'vaulted_ceilings' (near fp) handled in fireplace section
   { id: 'wine_cellar', label: 'Wine Cellar'},
 ];
 
 export const EXTERIOR_FEATURE_OPTIONS: Option[] = [
-  // 'deck', 'patio', 'fenced_yard', 'swimming_pool', 'sprinkler_system', 'shed' moved or handled differently
-  { id: 'covered_porch_general', label: 'Covered Porch (General)' },
+  { id: 'covered_porch_general', label: 'Covered Porch (General)' }, // If 'balcony_patio' room type isn't specific enough
   { id: 'gutters', label: 'Gutters'},
   { id: 'outdoor_lighting', label: 'Outdoor Lighting'},
   { id: 'workshop', label: 'Workshop (Separate)'},
   { id: 'guest_house', label: 'Guest House / Casita'},
-  { id: 'mature_landscaping', label: 'Mature Landscaping (General)'}, // If not covered by landscapingDesc or backyard
+  { id: 'mature_landscaping', label: 'Mature Landscaping (General)'}, // Supplement to backyard features
   { id: 'corner_lot', label: 'Corner Lot'},
   { id: 'cul_de_sac_lot', label: 'Cul-de-sac Lot'},
   { id: 'waterfront', label: 'Waterfront / Water View'},
   { id: 'golf_course_lot', label: 'Golf Course Lot'},
+  // 'deck', 'patio', 'fenced_yard', 'swimming_pool', 'sprinkler_system', 'shed' handled in specific sections
 ];
 
 

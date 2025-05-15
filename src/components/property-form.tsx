@@ -30,13 +30,13 @@ const steps = [
     'fireplaceCount', 'fireplaceTypeWood', 'fireplaceTypeGas', 'fireplaceFeaturesLogs', 'fireplaceFeaturesElectricStarter', 'fireplaceVaultedCeilings',
     'programmableThermostat', 'waterHeater', 'acType', 'acOtherType', 'heatType', 
     'hasPool', 'hasHotTub', 'hasSprinklers', 'hasAlarm', 'smokeDetectorCount',
-    'backyardFeatures', 'communityAmenities', 'landscapingDescription',
-    'interiorFeatures', 'exteriorFeatures', 'description'
+    'backyardFeatures', 'communityAmenities', 
+    // 'landscapingDescription', 'interiorFeatures', 'exteriorFeatures', // Removed
+    'description'
   ]},
   { id: 7, title: 'Review & Submit', component: ReviewStep, fields: [] },
 ];
 
-// Helper function to recursively collect all error messages from RHF's error state
 function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
   let messages: string[] = [];
   if (!errorsObject) return messages;
@@ -49,7 +49,6 @@ function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
       if (errorField) {
         if (typeof errorField.message === 'string') {
           let fieldName = currentPath;
-          // Make room error paths more user-friendly
           if (fieldName.startsWith('rooms.')) {
             fieldName = fieldName.replace(/^rooms\.(\d+)\.(.*)$/, (match, index, field) => {
               let readableField = field.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim(); 
@@ -67,17 +66,17 @@ function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
           messages.push(`${fieldName}: ${errorField.message}`);
         } else if (Array.isArray(errorField)) {
           errorField.forEach((item, index) => {
-            if (item) { // Only process if there's an error object for this item
+            if (item) { 
               messages = messages.concat(getAllErrorMessages(item, `${currentPath}.${index}`));
             }
           });
-        } else if (typeof errorField === 'object' && !errorField.type /* Check if it's a nested errors object and not a FieldError itself */) {
+        } else if (typeof errorField === 'object' && !errorField.type ) {
           messages = messages.concat(getAllErrorMessages(errorField, currentPath));
         }
       }
     }
   }
-  return messages.filter(Boolean); // Remove any undefined/empty messages
+  return messages.filter(Boolean); 
 }
 
 
@@ -87,7 +86,7 @@ export function PropertyForm() {
 
   const methods = useForm<PropertyFormData>({
     resolver: zodResolver(propertySchema),
-    mode: 'onTouched', // Consider 'onChange' or 'onBlur' if more immediate feedback is desired. 'onTouched' is a good balance.
+    mode: 'onTouched', 
     defaultValues: {
       address: '',
       city: '',
@@ -131,9 +130,9 @@ export function PropertyForm() {
       smokeDetectorCount: undefined,
       backyardFeatures: [],
       communityAmenities: [],
-      landscapingDescription: '',
-      interiorFeatures: [],
-      exteriorFeatures: [],
+      // landscapingDescription: '', // Removed
+      // interiorFeatures: [], // Removed
+      // exteriorFeatures: [], // Removed
       description: '',
     },
   });
@@ -153,12 +152,12 @@ export function PropertyForm() {
     const currentStepConfig = steps[currentStep - 1];
     const currentStepFields = currentStepConfig.fields as (keyof PropertyFormData)[];
     
-    // Clear previous manual errors for current step's specific custom validations
     if (currentStepConfig.title === 'Room Specifications') {
       const rooms = methods.getValues('rooms');
       rooms?.forEach((_room, index) => {
         clearErrors(`rooms.${index}.garageLength` as const);
         clearErrors(`rooms.${index}.garageWidth` as const);
+        clearErrors(`rooms.${index}.roomType` as const); // Clear general room type error
       });
     } else if (currentStepConfig.title === 'Property Details') {
         clearErrors('hoaDues');
@@ -167,13 +166,10 @@ export function PropertyForm() {
     } else if (currentStepConfig.title === 'Additional Details & Features') {
         clearErrors('acOtherType');
     }
-    // For Zod errors or general field errors, `trigger` will update them.
-    // No need to call clearErrors broadly for Zod-managed fields if re-triggering.
     
     const isValid = currentStepFields.length > 0 ? await trigger(currentStepFields, { shouldFocus: true }) : true;
     
     let customValidationPassed = true;
-    // Custom validation logic, setError will update methods.formState.errors
     if (currentStepConfig.title === 'Property Details') {
       if (methods.getValues('hasHOA') && (methods.getValues('hoaDues') === undefined || methods.getValues('hoaDues') === null || methods.getValues('hoaDues')! <= 0)) {
         setError('hoaDues', { type: 'manual', message: 'HOA dues are required if HOA is selected and must be positive.' });
@@ -221,7 +217,6 @@ export function PropertyForm() {
       if (collectedMessages.length > 0) {
         toastDescription += "\n\n- " + collectedMessages.join('\n- ');
       } else {
-        // This case should ideally not happen if validation fails, as errors should be in formState
         toastDescription += "\n\nPlease review all fields for missing or invalid entries.";
       }
 
@@ -229,7 +224,7 @@ export function PropertyForm() {
         title: "Validation Error",
         description: <pre className="whitespace-pre-wrap text-xs">{toastDescription}</pre>,
         variant: "destructive",
-        duration: 5000, // Give a bit more time to read
+        duration: 7000, 
       });
     }
   };
@@ -264,15 +259,16 @@ export function PropertyForm() {
               onClick={handlePreviousStep}
               variant="outline"
               disabled={currentStep === 1}
+              className="px-6 py-2 md:px-8"
             >
               <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>
             {currentStep < steps.length ? (
-              <Button type="button" onClick={handleNextStep}>
+              <Button type="button" onClick={handleNextStep} className="px-6 py-2 md:px-8">
                 Next <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
-              <Button type="submit">
+              <Button type="submit" className="px-6 py-2 md:px-8">
                 Submit Property <Send className="ml-2 h-4 w-4" />
               </Button>
             )}

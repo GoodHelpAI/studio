@@ -17,7 +17,7 @@ import {
   FENCE_HEIGHT_OPTIONS, FENCE_MATERIAL_OPTIONS, FENCE_STYLE_OPTIONS,
   FIREPLACE_COUNT_OPTIONS, WATER_HEATER_OPTIONS, AC_TYPE_OPTIONS, HEAT_TYPE_OPTIONS,
   SMOKE_DETECTOR_COUNT_OPTIONS, BACKYARD_FEATURE_OPTIONS, COMMUNITY_AMENITY_OPTIONS,
-  INTERIOR_FEATURE_OPTIONS, EXTERIOR_FEATURE_OPTIONS
+  // INTERIOR_FEATURE_OPTIONS, EXTERIOR_FEATURE_OPTIONS // No longer used here directly
 } from '@/lib/constants';
 
 export function AdditionalDetailsStep() {
@@ -162,21 +162,19 @@ export function AdditionalDetailsStep() {
        <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Trees className="text-primary"/> Landscaping & Community</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <FormField control={control} name="landscapingDescription" render={({ field }) => (
-            <FormItem><FormLabel>Landscaping Details</FormLabel><FormControl><Textarea placeholder="Describe landscaping features, e.g., flower beds, rock gardens, specific trees." {...field} value={field.value ?? ''}/></FormControl><FormMessage /></FormItem>
-          )}/>
+          {/* Landscaping Description Field Removed */}
           <ChipCheckboxGroup control={control} name="backyardFeatures" label="Backyard Features" options={BACKYARD_FEATURE_OPTIONS} />
           <ChipCheckboxGroup control={control} name="communityAmenities" label="Community Amenities" options={COMMUNITY_AMENITY_OPTIONS} />
         </CardContent>
       </Card>
       <Separator />
 
-       {/* General Features (Revised) */}
+       {/* General Property Description */}
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Sparkles className="text-primary"/> Other Notable Features</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Sparkles className="text-primary"/> Property Description</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-           <ChipCheckboxGroup control={control} name="interiorFeatures" label="Interior Features" options={INTERIOR_FEATURE_OPTIONS}/>
-           <ChipCheckboxGroup control={control} name="exteriorFeatures" label="Exterior Features" options={EXTERIOR_FEATURE_OPTIONS}/>
+           {/* ChipCheckboxGroup for interiorFeatures removed */}
+           {/* ChipCheckboxGroup for exteriorFeatures removed */}
             <FormField
                 control={control}
                 name="description"
@@ -202,5 +200,3 @@ export function AdditionalDetailsStep() {
     </div>
   );
 }
-
-    

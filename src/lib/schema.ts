@@ -20,8 +20,6 @@ const refinedOptionalPositiveFloat = z.preprocess(
       return undefined;
     }
     const num = parseFloat(sVal);
-    // For positive numbers, if it's NaN or not positive, treat as undefined for optional validation.
-    // Zod's .positive() will catch it if a non-positive number is actually entered.
     return (isNaN(num) || num <= 0) ? undefined : num;
   },
   z.number().positive("Value must be a positive number").optional()
@@ -35,8 +33,7 @@ const refinedOptionalPositiveInteger = z.preprocess(
       return undefined;
     }
     const num = parseInt(sVal, 10);
-     // For positive integers, if it's NaN or not positive, treat as undefined for optional validation.
-    return (isNaN(num) || num < 0) ? undefined : num; // min(0) means 0 is allowed
+    return (isNaN(num) || num < 0) ? undefined : num; 
   },
   z.number().int().min(0, "Cannot be negative").optional()
 );
@@ -50,7 +47,7 @@ export const KitchenDetailsSchema = z.object({
   laminateKTop: z.boolean().default(false).optional(),
   corianKTop: z.boolean().default(false).optional(),
   tileKTop: z.boolean().default(false).optional(),
-  otherKTop: z.string().optional(), // For other countertop materials
+  otherKTop: z.string().optional(), 
   walkInPantry: z.boolean().default(false).optional(),
   tileBacksplash: z.boolean().default(false).optional(),
   butlersPantry: z.boolean().default(false).optional(),
@@ -73,13 +70,14 @@ export const KitchenDetailsSchema = z.object({
 export type KitchenDetails = z.infer<typeof KitchenDetailsSchema>;
 
 export const RoomSchema = z.object({
-  id: z.string().optional(), // for react-hook-form field array key
+  id: z.string().optional(), 
   roomType: z.string().min(1, "Room type is required"),
   length: refinedOptionalPositiveFloat,
   width: refinedOptionalPositiveFloat,
   features: z.string().optional(),
   fan: z.enum(['yes', 'no', '']).default('no').optional(),
   washerDryerHookups: z.enum(['yes', 'no', 'na', '']).default('na').optional(),
+  hasWalkInCloset: z.boolean().default(false).optional(),
   kitchenDetails: KitchenDetailsSchema,
   garageCarCount: z.enum(['1', '2', '3', 'none', '']).default('').optional(),
   garageDoorOpeners: z.enum(['0', '1', '2', '3', 'none', '']).default('').optional(),
@@ -111,22 +109,22 @@ export const propertySchema = z.object({
   zip: z.string().regex(/^\d{5}(-\d{4})?$/, "Invalid zip code format"),
   propertyType: z.string().min(1, "Property type is required"),
 
-  // Property Details (Simplified)
+  // Property Details
   overallBedrooms: z.preprocess(
-    val => { // Required field, so convert to NaN if not a number, let Zod catch it
+    val => { 
         const sVal = String(val).trim();
-        if (sVal === '' || val === undefined || val === null || sVal.toLowerCase() === 'undefined') return NaN; // Force error for required
+        if (sVal === '' || val === undefined || val === null || sVal.toLowerCase() === 'undefined') return NaN;
         const num = parseInt(sVal, 10);
-        return num; // Zod will check isNaN and int/min
+        return num;
     },
     z.number({invalid_type_error: "Total bedrooms must be a number"}).int().min(0, "Total bedrooms cannot be negative")
   ),
   overallBathrooms: z.preprocess(
-    val => { // Required field
+    val => { 
         const sVal = String(val).trim();
-        if (sVal === '' || val === undefined || val === null || sVal.toLowerCase() === 'undefined') return NaN; // Force error for required
+        if (sVal === '' || val === undefined || val === null || sVal.toLowerCase() === 'undefined') return NaN; 
         const num = parseFloat(sVal);
-        return num; // Zod will check isNaN and min
+        return num; 
     },
     z.number({invalid_type_error: "Total bathrooms must be a number"}).min(0, "Total bathrooms cannot be negative")
   ),
@@ -147,10 +145,10 @@ export const propertySchema = z.object({
   rooms: z.array(RoomSchema).optional(),
 
   // Carport, RV Pad
-  carportPresent: z.enum(['yes', 'no', '']).default('no').optional(),
+  carportPresent: z.enum(['yes', 'no']).default('no').optional(),
   carportLength: refinedOptionalPositiveFloat,
   carportWidth: refinedOptionalPositiveFloat,
-  rvPadPresent: z.enum(['yes', 'no', '']).default('no').optional(),
+  rvPadPresent: z.enum(['yes', 'no']).default('no').optional(),
   rvPadLength: refinedOptionalPositiveFloat,
   rvPadWidth: refinedOptionalPositiveFloat,
   
@@ -189,11 +187,7 @@ export const propertySchema = z.object({
   
   backyardFeatures: z.array(z.string()).optional(),
   communityAmenities: z.array(z.string()).optional(),
-  landscapingDescription: z.string().max(500, "Landscaping description too long").optional(),
-
-  interiorFeatures: z.array(z.string()).optional(),
-  exteriorFeatures: z.array(z.string()).optional(),
-
+  
   description: z.string().max(5000, "Description is too long").optional(),
 
 }).refine(data => {
@@ -223,5 +217,3 @@ export const propertySchema = z.object({
 });
 
 export type PropertyFormData = z.infer<typeof propertySchema>;
-
-    
