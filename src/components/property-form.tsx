@@ -10,7 +10,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, Send } from 'lucide-react';
-import Image from 'next/image';
+// Image component removed as logo is being removed
 
 import { BasicInfoStep } from './property-form/basic-info-step';
 import { PropertyDetailsStep } from './property-form/property-details-step';
@@ -51,38 +51,34 @@ function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
       if (errorField) {
         if (typeof errorField.message === 'string') {
           let fieldName = currentPath;
-          // Custom formatting for room errors to make them more readable
           if (fieldName.startsWith('rooms.')) {
             fieldName = fieldName.replace(/^rooms\.(\d+)\.(.*)$/, (match, index, field) => {
               let readableField = field.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim();
-              // Specific overrides for better readability
               if (field === 'roomType') readableField = 'room type';
               else if (field === 'garageLength') readableField = 'garage length';
               else if (field === 'garageWidth') readableField = 'garage width';
               else if (field === 'garageCarCount') readableField = 'garage car count';
               else if (field === 'garageDoorOpeners') readableField = 'garage door openers';
-              // Capitalize first letter of the field
               return `Room ${parseInt(index) + 1} ${readableField.charAt(0).toUpperCase() + readableField.slice(1)}`;
             });
           } else {
-             // General field name formatting (capitalize first letter)
              fieldName = fieldName.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim();
              fieldName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
           }
           messages.push(`${fieldName}: ${errorField.message}`);
         } else if (Array.isArray(errorField)) {
           errorField.forEach((item, index) => {
-            if (item) { // Check if item is not null/undefined
+            if (item) { 
               messages = messages.concat(getAllErrorMessages(item, `${currentPath}.${index}`));
             }
           });
-        } else if (typeof errorField === 'object' && !errorField.type ) { // Check if it's a nested error object
+        } else if (typeof errorField === 'object' && !errorField.type ) { 
           messages = messages.concat(getAllErrorMessages(errorField, currentPath));
         }
       }
     }
   }
-  return messages.filter(Boolean); // Filter out any undefined/null messages that might have slipped through
+  return messages.filter(Boolean); 
 }
 
 
@@ -204,15 +200,14 @@ export function PropertyForm() {
     const currentStepConfig = steps[currentStep - 1];
     const currentStepFields = currentStepConfig.fields as FieldPath<PropertyFormData>[];
 
-    // Clear previous manual errors for the current step or specific fields
     if (currentStepConfig.title === 'Room Specifications') {
       const rooms = methods.getValues('rooms');
       rooms?.forEach((_room, index) => {
-        clearErrors(`rooms.${index}.garageLength` as const);
-        clearErrors(`rooms.${index}.garageWidth` as const);
         clearErrors(`rooms.${index}.roomType` as const);
         clearErrors(`rooms.${index}.length` as const);
         clearErrors(`rooms.${index}.width` as const);
+        clearErrors(`rooms.${index}.garageLength` as const);
+        clearErrors(`rooms.${index}.garageWidth` as const);
       });
     } else if (currentStepConfig.title === 'Property Details') {
         clearErrors('hoaDues');
@@ -225,7 +220,6 @@ export function PropertyForm() {
     const isValid = currentStepFields.length > 0 ? await trigger(currentStepFields, { shouldFocus: true }) : true;
 
     let customValidationPassed = true;
-    // Custom validation logic after triggering standard validation
     if (currentStepConfig.title === 'Property Details') {
       if (methods.getValues('hasHOA') && (methods.getValues('hoaDues') === undefined || methods.getValues('hoaDues') === null || methods.getValues('hoaDues')! <= 0)) {
         setError('hoaDues', { type: 'manual', message: 'HOA dues are required if HOA is selected and must be positive.' });
@@ -289,7 +283,6 @@ export function PropertyForm() {
         toastDescription += "\n\nPlease review all fields for missing or invalid entries.";
       }
 
-
       toast({
         title: "Validation Error",
         description: <pre className="whitespace-pre-wrap text-xs">{toastDescription}</pre>,
@@ -310,24 +303,11 @@ export function PropertyForm() {
   return (
     <FormProvider {...methods}>
       <Card className="w-full max-w-3xl mx-auto shadow-2xl">
-        <CardHeader className="relative">
-          <div className="absolute top-4 left-4">
-            {/*
-              IMPORTANT: Ensure 'cudd-realty-logo.png' is in your /public directory.
-              Adjust width and height as needed for your logo.
-            */}
-            <Image
-              src="/cudd-realty-logo.png"
-              alt="Cudd Realty Logo"
-              width={100}
-              height={50}
-              data-ai-hint="company logo"
-
-            />
-          </div>
+        <CardHeader>
+          {/* Logo Image component removed */}
           <CardTitle
-            className="text-2xl md:text-3xl text-center font-bold pt-16 md:pt-4"
-            style={{ color: '#8c1c19' }} // Primary brand color for title
+            className="text-2xl md:text-3xl text-center font-bold pt-4" // Adjusted padding
+            style={{ color: '#8c1c19' }} 
           >
             Cudd Realty Measurement Form
           </CardTitle>
@@ -340,27 +320,34 @@ export function PropertyForm() {
           <CardContent className="min-h-[300px] py-6">
             <ActiveStepComponent />
           </CardContent>
-          <CardFooter className="flex justify-between pt-6 border-t">
-            <Button
-              type="button"
-              onClick={handlePreviousStep}
-              variant="outline"
-              disabled={currentStep === 1 || isSubmitting}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" /> Previous
-            </Button>
-            {currentStep < steps.length ? (
-              <Button type="button" onClick={handleNextStep} disabled={isSubmitting}>
-                Next <ArrowRight className="ml-2 h-4 w-4" />
+          <CardFooter className="flex flex-col pt-6 border-t">
+            <div className="flex justify-between w-full">
+              <Button
+                type="button"
+                onClick={handlePreviousStep}
+                variant="outline"
+                disabled={currentStep === 1 || isSubmitting}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" /> Previous
               </Button>
-            ) : (
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Submitting...' : 'Submit Property'} <Send className="ml-2 h-4 w-4" />
-              </Button>
-            )}
+              {currentStep < steps.length ? (
+                <Button type="button" onClick={handleNextStep} disabled={isSubmitting}>
+                  Next <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              ) : (
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Submitting...' : 'Submit Property'} <Send className="ml-2 h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-6 text-center w-full">
+              Made with GoodHelp AI
+            </p>
           </CardFooter>
         </form>
       </Card>
     </FormProvider>
   );
 }
+
+    
