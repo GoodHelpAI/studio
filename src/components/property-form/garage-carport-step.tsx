@@ -2,16 +2,17 @@
 "use client";
 
 import { useFormContext } from 'react-hook-form';
-import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { PropertyFormData } from '@/lib/schema';
-import { Car, Rss } from 'lucide-react'; // Rss for RV Pad (antenna like)
+import { Car, Caravan } from 'lucide-react'; // Caravan for RV Pad
+import { YES_NO_OPTIONS } from '@/lib/constants';
 
 export function GarageCarportStep() {
-  const { control, watch } = useFormContext<PropertyFormData>();
+  const { control, watch, setValue } = useFormContext<PropertyFormData>();
 
   const carportPresent = watch('carportPresent');
   const rvPadPresent = watch('rvPadPresent');
@@ -27,15 +28,35 @@ export function GarageCarportStep() {
             control={control}
             name="carportPresent"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center space-x-3 space-y-0 p-3 border rounded-md">
+              <FormItem className="space-y-3">
+                <FormLabel>Is there a Carport?</FormLabel>
                 <FormControl>
-                  <Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} />
+                  <RadioGroup
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      if (value === 'no') {
+                        setValue('carportLength', undefined);
+                        setValue('carportWidth', undefined);
+                      }
+                    }}
+                    value={field.value || 'no'}
+                    className="flex space-x-2"
+                  >
+                    {YES_NO_OPTIONS.map(option => (
+                      <FormItem key={`carport-${option.id}`} className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value={option.id} />
+                        </FormControl>
+                        <FormLabel className="font-normal">{option.label}</FormLabel>
+                      </FormItem>
+                    ))}
+                  </RadioGroup>
                 </FormControl>
-                <FormLabel className="font-normal">Is there a Carport?</FormLabel>
+                <FormMessage />
               </FormItem>
             )}
           />
-          {carportPresent && (
+          {carportPresent === 'yes' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <FormField
                 control={control}
@@ -72,22 +93,42 @@ export function GarageCarportStep() {
 
       <Card>
          <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg"><Rss className="text-primary"/> RV Pad Details</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-lg"><Caravan className="text-primary"/> RV Pad Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <FormField
+           <FormField
             control={control}
             name="rvPadPresent"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center space-x-3 space-y-0 p-3 border rounded-md">
+              <FormItem className="space-y-3">
+                <FormLabel>Is there an RV Pad?</FormLabel>
                 <FormControl>
-                  <Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} />
+                  <RadioGroup
+                     onValueChange={(value) => {
+                      field.onChange(value);
+                      if (value === 'no') {
+                        setValue('rvPadLength', undefined);
+                        setValue('rvPadWidth', undefined);
+                      }
+                    }}
+                    value={field.value || 'no'}
+                    className="flex space-x-2"
+                  >
+                    {YES_NO_OPTIONS.map(option => (
+                      <FormItem key={`rvpad-${option.id}`} className="flex items-center space-x-2 space-y-0">
+                        <FormControl>
+                          <RadioGroupItem value={option.id} />
+                        </FormControl>
+                        <FormLabel className="font-normal">{option.label}</FormLabel>
+                      </FormItem>
+                    ))}
+                  </RadioGroup>
                 </FormControl>
-                <FormLabel className="font-normal">Is there an RV Pad?</FormLabel>
+                <FormMessage />
               </FormItem>
             )}
           />
-          {rvPadPresent && (
+          {rvPadPresent === 'yes' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <FormField
                 control={control}
@@ -122,3 +163,4 @@ export function GarageCarportStep() {
     </div>
   );
 }
+

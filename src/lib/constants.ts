@@ -124,12 +124,13 @@ export const COOKTOP_TYPE_OPTIONS: Option[] = [
 
 // Garage/Carport
 export const GARAGE_CAR_COUNT_OPTIONS: Option[] = [
+  { id: 'none', label: 'N/A or No Garage' },
   { id: '1', label: '1 Car' },
   { id: '2', label: '2 Cars' },
   { id: '3', label: '3+ Cars' },
-  { id: 'none', label: 'No Garage' },
 ];
 export const GARAGE_DOOR_OPENER_OPTIONS: Option[] = [
+  { id: 'none', label: 'N/A or No Openers' },
   { id: '0', label: '0 Openers' },
   { id: '1', label: '1 Opener' },
   { id: '2', label: '2 Openers' },

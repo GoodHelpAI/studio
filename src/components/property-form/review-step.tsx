@@ -12,18 +12,21 @@ import {
   FENCE_HEIGHT_OPTIONS, FENCE_MATERIAL_OPTIONS, FENCE_STYLE_OPTIONS,
   WATER_HEATER_OPTIONS, AC_TYPE_OPTIONS, HEAT_TYPE_OPTIONS, SMOKE_DETECTOR_COUNT_OPTIONS,
   BACKYARD_FEATURE_OPTIONS, COMMUNITY_AMENITY_OPTIONS, FRIDGE_OPTIONS, RANGE_TYPE_OPTIONS,
-  RANGE_OVEN_OPTIONS, COOKTOP_TYPE_OPTIONS, FIREPLACE_COUNT_OPTIONS, YES_NO_NA_OPTIONS
+  RANGE_OVEN_OPTIONS, COOKTOP_TYPE_OPTIONS, FIREPLACE_COUNT_OPTIONS, YES_NO_OPTIONS, YES_NO_NA_OPTIONS
 } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { formatKitchenFeatureLabel } from './room-block'; 
 
 const getLabelById = (id: string | number | undefined, options: Array<{id: string, label: string}>, returnIdAsFallback = true) => {
   if (id === undefined || id === null || String(id).trim() === '') return 'N/A';
-  const foundOption = options.find(opt => opt.id === String(id));
-  return foundOption ? foundOption.label : (returnIdAsFallback ? String(id) : 'N/A');
+  const stringId = String(id);
+  const foundOption = options.find(opt => opt.id === stringId);
+  return foundOption ? foundOption.label : (returnIdAsFallback ? stringId : 'N/A');
 };
 
-const formatBoolean = (value?: boolean) => (value ? 'Yes' : 'No');
+const formatBooleanYesNo = (value?: boolean) => (value ? 'Yes' : 'No');
+const formatStringYesNo = (value?: string) => (value === 'yes' ? 'Yes' : (value === 'no' ? 'No' : 'N/A'));
+
 
 const DisplayField: React.FC<{ label: string; value?: string | number | boolean | null; className?: string, isBadge?: boolean }> = ({ label, value, className, isBadge }) => (
   <div className={cn("mb-2", className)}>
@@ -51,7 +54,7 @@ const renderKitchenDetails = (details?: KitchenDetails) => {
 
   Object.entries(details).forEach(([key, value]) => {
     if (typeof value === 'boolean' && value) {
-      kitchenFeatures.push(<DisplayField key={key} label={formatKitchenFeatureLabel(key)} value={formatBoolean(value)} className="text-xs" />);
+      kitchenFeatures.push(<DisplayField key={key} label={formatKitchenFeatureLabel(key)} value={formatBooleanYesNo(value)} className="text-xs" />);
     } else if (typeof value === 'string' && value && value !== 'none' && value !== '') {
       let optionsArray;
       if (key === 'fridge') optionsArray = FRIDGE_OPTIONS;
@@ -73,16 +76,24 @@ export function ReviewStep() {
   const { getValues } = useFormContext<PropertyFormData>();
   const data = getValues();
 
-  const renderRoom = (room: Room, index: number) => (
+  const renderRoom = (room: Room, index: number) => {
+    let roomTitle = `Room ${index + 1}`;
+    const roomTypeDetails = ROOM_TYPES.find(rt => rt.id === room.roomType);
+    if (roomTypeDetails) {
+        const allRooms = data.rooms || [];
+        const countOfThisType = allRooms.slice(0, index + 1).filter(r => r.roomType === room.roomType).length;
+        roomTitle = `${roomTypeDetails.label} ${countOfThisType > 0 ? countOfThisType : ''}`.trim();
+    }
+
+    return (
     <Card key={index} className="mb-4 bg-muted/10">
       <CardHeader className="pb-2 pt-4">
-        <CardTitle className="text-md">Room {index + 1}: {getLabelById(room.roomType, ROOM_TYPES)}</CardTitle>
+        <CardTitle className="text-md">{roomTitle}</CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
         <DisplayField label="Dimensions" value={room.length && room.width ? `${room.length}ft x ${room.width}ft` : 'N/A'} />
-        {room.fan && room.fan !== 'na' && <DisplayField label="Fan" value={getLabelById(room.fan, YES_NO_NA_OPTIONS)} />}
-        {room.washerDryerHookups && room.washerDryerHookups !== 'na' && <DisplayField label="W/D Hookups" value={getLabelById(room.washerDryerHookups, YES_NO_NA_OPTIONS)} />}
-        {room.features && <DisplayField label="Notes" value={room.features} className="col-span-full"/>}
+        {room.fan && room.fan !== '' && <DisplayField label="Fan" value={getLabelById(room.fan, YES_NO_OPTIONS)} />}
+        {room.washerDryerHookups && room.washerDryerHookups !== '' && <DisplayField label="W/D Hookups" value={getLabelById(room.washerDryerHookups, YES_NO_NA_OPTIONS)} />}
         
         {room.roomType === 'kitchen' && room.kitchenDetails && (
           <div className="col-span-full mt-2 pt-2 border-t">
@@ -100,9 +111,10 @@ export function ReviewStep() {
             </div>
           </div>
         )}
+         {room.features && <DisplayField label="Notes" value={room.features} className="col-span-full mt-2 pt-2 border-t"/>}
       </CardContent>
     </Card>
-  );
+  )};
   
   const renderDimensionedItem = (item: Patio | Shed | undefined, label: string, index: number) => {
     if (!item || (!item.length && !item.width)) return null;
@@ -137,7 +149,7 @@ export function ReviewStep() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <DisplayField label="Total Bedrooms" value={String(data.overallBedrooms)} />
               <DisplayField label="Total Bathrooms" value={String(data.overallBathrooms)} />
-              <DisplayField label="HOA" value={formatBoolean(data.hasHOA)} />
+              <DisplayField label="HOA" value={formatBooleanYesNo(data.hasHOA)} />
               {data.hasHOA && <DisplayField label="Monthly HOA Dues" value={data.hoaDues ? `$${data.hoaDues}` : 'N/A'} />}
             </div>
           </div>
@@ -156,10 +168,10 @@ export function ReviewStep() {
           <div>
             <h3 className="text-lg font-semibold mb-2 text-primary">Carport & RV Pad</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <DisplayField label="Carport Present" value={formatBoolean(data.carportPresent)} />
-              {data.carportPresent && <DisplayField label="Carport Dimensions" value={data.carportLength && data.carportWidth ? `${data.carportLength}ft x ${data.carportWidth}ft` : 'N/A'} />}
-              <DisplayField label="RV Pad Present" value={formatBoolean(data.rvPadPresent)} />
-              {data.rvPadPresent && <DisplayField label="RV Pad Dimensions" value={data.rvPadLength && data.rvPadWidth ? `${data.rvPadLength}ft x ${data.rvPadWidth}ft` : 'N/A'} />}
+              <DisplayField label="Carport Present" value={formatStringYesNo(data.carportPresent)} />
+              {data.carportPresent === 'yes' && <DisplayField label="Carport Dimensions" value={data.carportLength && data.carportWidth ? `${data.carportLength}ft x ${data.carportWidth}ft` : 'N/A'} />}
+              <DisplayField label="RV Pad Present" value={formatStringYesNo(data.rvPadPresent)} />
+              {data.rvPadPresent === 'yes' && <DisplayField label="RV Pad Dimensions" value={data.rvPadLength && data.rvPadWidth ? `${data.rvPadLength}ft x ${data.rvPadWidth}ft` : 'N/A'} />}
             </div>
           </div>
           <Separator />
@@ -173,7 +185,7 @@ export function ReviewStep() {
 
           <div>
             <h3 className="text-lg font-semibold mb-2 text-primary">Additional Details & Features</h3>
-            <DisplayField label="Has Deck" value={formatBoolean(data.hasDeck)} />
+            <DisplayField label="Has Deck" value={formatBooleanYesNo(data.hasDeck)} />
             {data.patios?.map((p, i) => renderDimensionedItem(p, "Patio", i))}
             {data.sheds?.map((s, i) => renderDimensionedItem(s, "Shed", i))}
             
@@ -184,23 +196,23 @@ export function ReviewStep() {
 
             <h4 className="text-md font-medium mt-3 mb-1 text-muted-foreground">Fireplace</h4>
             <DisplayField label="Number of Fireplaces" value={getLabelById(data.fireplaceCount, FIREPLACE_COUNT_OPTIONS, false)} />
-            <DisplayField label="Wood Burning Fireplace" value={formatBoolean(data.fireplaceTypeWood)} />
-            <DisplayField label="Gas Fireplace" value={formatBoolean(data.fireplaceTypeGas)} />
-            <DisplayField label="Gas Logs" value={formatBoolean(data.fireplaceFeaturesLogs)} />
-            <DisplayField label="Electric Starter" value={formatBoolean(data.fireplaceFeaturesElectricStarter)} />
-            <DisplayField label="Vaulted Ceilings (near FP)" value={formatBoolean(data.fireplaceVaultedCeilings)} />
+            <DisplayField label="Wood Burning Fireplace" value={formatBooleanYesNo(data.fireplaceTypeWood)} />
+            <DisplayField label="Gas Fireplace" value={formatBooleanYesNo(data.fireplaceTypeGas)} />
+            <DisplayField label="Gas Logs" value={formatBooleanYesNo(data.fireplaceFeaturesLogs)} />
+            <DisplayField label="Electric Starter" value={formatBooleanYesNo(data.fireplaceFeaturesElectricStarter)} />
+            <DisplayField label="Vaulted Ceilings (near FP)" value={formatBooleanYesNo(data.fireplaceVaultedCeilings)} />
             
             <h4 className="text-md font-medium mt-3 mb-1 text-muted-foreground">Utilities & Systems</h4>
-            <DisplayField label="Programmable Thermostat" value={formatBoolean(data.programmableThermostat)} />
+            <DisplayField label="Programmable Thermostat" value={formatBooleanYesNo(data.programmableThermostat)} />
             <DisplayField label="Water Heater" value={getLabelById(data.waterHeater, WATER_HEATER_OPTIONS)} />
             <DisplayField label="A/C Type" value={getLabelById(data.acType, AC_TYPE_OPTIONS)} />
             {data.acType === 'other' && <DisplayField label="Other A/C Type" value={data.acOtherType} />}
             <DisplayField label="Heat Type" value={getLabelById(data.heatType, HEAT_TYPE_OPTIONS)} />
             {data.heatType === 'other' && <DisplayField label="Other Heat Type" value={/* data.otherHeatType - need to add this field if heatType can be 'other' with specification */ 'N/A'} />}
-            <DisplayField label="Pool" value={formatBoolean(data.hasPool)} />
-            <DisplayField label="Hot Tub/Spa" value={formatBoolean(data.hasHotTub)} />
-            <DisplayField label="Sprinkler System" value={formatBoolean(data.hasSprinklers)} />
-            <DisplayField label="Alarm System" value={formatBoolean(data.hasAlarm)} />
+            <DisplayField label="Pool" value={formatBooleanYesNo(data.hasPool)} />
+            <DisplayField label="Hot Tub/Spa" value={formatBooleanYesNo(data.hasHotTub)} />
+            <DisplayField label="Sprinkler System" value={formatBooleanYesNo(data.hasSprinklers)} />
+            <DisplayField label="Alarm System" value={formatBooleanYesNo(data.hasAlarm)} />
             <DisplayField label="Smoke Detectors" value={getLabelById(data.smokeDetectorCount, SMOKE_DETECTOR_COUNT_OPTIONS, false)} />
 
             <h4 className="text-md font-medium mt-3 mb-1 text-muted-foreground">Landscaping & Community</h4>
@@ -224,3 +236,4 @@ export function ReviewStep() {
     </div>
   );
 }
+

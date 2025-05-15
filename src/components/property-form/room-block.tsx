@@ -10,9 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { XCircle, Wind, PlugZap, ChefHat, Warehouse } from 'lucide-react';
-import type { PropertyFormData, KitchenDetails } from '@/lib/schema';
+import type { PropertyFormData, KitchenDetails, Room } from '@/lib/schema';
 import { 
-  ROOM_TYPES, type RoomTypeOption, YES_NO_NA_OPTIONS, 
+  ROOM_TYPES, type RoomTypeOption, YES_NO_OPTIONS, YES_NO_NA_OPTIONS, 
   FRIDGE_OPTIONS, RANGE_TYPE_OPTIONS, RANGE_OVEN_OPTIONS, COOKTOP_TYPE_OPTIONS, KITCHEN_COUNTERTOP_OPTIONS,
   GARAGE_CAR_COUNT_OPTIONS, GARAGE_DOOR_OPENER_OPTIONS 
 } from '@/lib/constants';
@@ -47,10 +47,13 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
   const garageDoorOpenersPath = `${roomPathPrefix}.garageDoorOpeners` as const;
   const garageLengthPath = `${roomPathPrefix}.garageLength` as const;
   const garageWidthPath = `${roomPathPrefix}.garageWidth` as const;
+  const fanPath = `${roomPathPrefix}.fan` as const;
+  const washerDryerHookupsPath = `${roomPathPrefix}.washerDryerHookups` as const;
 
 
   const selectedRoomTypeId = watch(roomTypePath);
-  const RoomIcon = ROOM_TYPES.find(rt => rt.id === selectedRoomTypeId)?.icon;
+  const roomTypeDetails = ROOM_TYPES.find(rt => rt.id === selectedRoomTypeId);
+  const RoomIcon = roomTypeDetails?.icon;
 
   const isKitchen = selectedRoomTypeId === 'kitchen';
   const isBathroom = selectedRoomTypeId === 'bathroom' || selectedRoomTypeId === 'half_bathroom';
@@ -72,13 +75,21 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
     });
   }
 
+  // Dynamic card title
+  let cardTitle = `Room ${index + 1}`;
+  if (roomTypeDetails) {
+    const allRooms = getValues('rooms') || [];
+    const countOfThisType = allRooms.slice(0, index + 1).filter(r => r.roomType === selectedRoomTypeId).length;
+    cardTitle = `${roomTypeDetails.label} ${countOfThisType > 0 ? countOfThisType : ''}`.trim();
+  }
+
 
   return (
     <Card className="border border-border shadow-md hover:shadow-lg transition-shadow duration-200">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
           {RoomIcon && <RoomIcon className="h-5 w-5 text-primary" />}
-          Room {index + 1}
+          {cardTitle}
         </CardTitle>
         <Button
           type="button"
@@ -101,16 +112,18 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
               <Select 
                 onValueChange={(value) => {
                   field.onChange(value);
-                  // Reset conditional fields when type changes
                   if (value !== 'kitchen') setValue(kitchenDetailsPath, undefined);
                   if (value !== 'garage') {
-                    setValue(garageCarCountPath, undefined);
-                    setValue(garageDoorOpenersPath, undefined);
+                    setValue(garageCarCountPath, '');
+                    setValue(garageDoorOpenersPath, '');
                     setValue(garageLengthPath, undefined);
                     setValue(garageWidthPath, undefined);
+                  } else {
+                     setValue(garageCarCountPath, getValues(garageCarCountPath) || 'none');
+                     setValue(garageDoorOpenersPath, getValues(garageDoorOpenersPath) || 'none');
                   }
-                  setValue(`${roomPathPrefix}.fan`, 'na');
-                  setValue(`${roomPathPrefix}.washerDryerHookups`, 'na');
+                  setValue(fanPath, getValues(fanPath) || 'no');
+                  setValue(washerDryerHookupsPath, getValues(washerDryerHookupsPath) || 'na');
                 }} 
                 value={field.value || ''}
               >
@@ -162,34 +175,21 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
             )}
           />
         </div>
-        <FormField
-          control={control}
-          name={`${roomPathPrefix}.features`}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Features / Notes for this Room</FormLabel>
-              <FormControl>
-                <Textarea placeholder="e.g., Hardwood floors, large window" {...field} value={field.value ?? ''} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
+        
         {showFanOptions && (
           <FormField
             control={control}
-            name={`${roomPathPrefix}.fan`}
+            name={fanPath}
             render={({ field }) => (
               <FormItem className="space-y-3">
                 <FormLabel className="flex items-center"><Wind className="mr-2 h-4 w-4 text-primary" />Has Fan?</FormLabel>
                 <FormControl>
                   <RadioGroup
                     onValueChange={field.onChange}
-                    value={field.value || 'na'}
+                    value={field.value || 'no'}
                     className="flex space-x-2"
                   >
-                    {YES_NO_NA_OPTIONS.map(option => ( 
+                    {YES_NO_OPTIONS.map(option => ( 
                       <FormItem key={option.id} className="flex items-center space-x-2 space-y-0">
                         <FormControl>
                           <RadioGroupItem value={option.id} />
@@ -208,7 +208,7 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
         {showWasherDryerHookups && (
           <FormField
             control={control}
-            name={`${roomPathPrefix}.washerDryerHookups`}
+            name={washerDryerHookupsPath}
             render={({ field }) => (
               <FormItem className="space-y-3">
                 <FormLabel className="flex items-center"><PlugZap className="mr-2 h-4 w-4 text-primary" />Washer/Dryer Hookups?</FormLabel>
@@ -349,7 +349,7 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Number of Garage Spaces</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                  <Select onValueChange={field.onChange} value={field.value || 'none'}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select garage capacity" /></SelectTrigger></FormControl>
                     <SelectContent>
                       {GARAGE_CAR_COUNT_OPTIONS.map(option => (
@@ -391,7 +391,7 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Number of Garage Door Openers</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                  <Select onValueChange={field.onChange} value={field.value || 'none'}>
                     <FormControl><SelectTrigger><SelectValue placeholder="Select number of openers" /></SelectTrigger></FormControl>
                     <SelectContent>
                       {GARAGE_DOOR_OPENER_OPTIONS.map(option => (
@@ -405,7 +405,23 @@ export function RoomBlock({ index, onRemove }: RoomBlockProps) {
             />
           </div>
         )}
+
+        {/* Moved Features/Notes to the bottom of the card content */}
+        <FormField
+          control={control}
+          name={`${roomPathPrefix}.features`}
+          render={({ field }) => (
+            <FormItem className="mt-4 pt-4 border-t">
+              <FormLabel>Features / Notes for this Room</FormLabel>
+              <FormControl>
+                <Textarea placeholder="e.g., Hardwood floors, large window" {...field} value={field.value ?? ''} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       </CardContent>
     </Card>
   );
 }
+

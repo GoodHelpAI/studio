@@ -43,12 +43,11 @@ export const RoomSchema = z.object({
     z.number().positive("Width must be positive").optional()
   ),
   features: z.string().optional(),
-  fan: z.enum(['yes', 'no', 'na', '']).default('na').optional(),
+  fan: z.enum(['yes', 'no', '']).default('no').optional(), // N/A removed, default to 'no'
   washerDryerHookups: z.enum(['yes', 'no', 'na', '']).default('na').optional(),
   kitchenDetails: KitchenDetailsSchema,
-  // Garage specific fields, only relevant if roomType is 'garage'
   garageCarCount: z.enum(['1', '2', '3', 'none', '']).default('').optional(),
-  garageDoorOpeners: z.enum(['0', '1', '2', '3', '']).default('').optional(),
+  garageDoorOpeners: z.enum(['0', '1', '2', '3', 'none', '']).default('').optional(),
   garageLength: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Length must be positive").optional()),
   garageWidth: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Width must be positive").optional()),
 });
@@ -95,11 +94,11 @@ export const propertySchema = z.object({
   // Rooms
   rooms: z.array(RoomSchema).optional(),
 
-  // Carport, RV Pad (Garage details moved to RoomSchema)
-  carportPresent: z.boolean().default(false).optional(),
+  // Carport, RV Pad
+  carportPresent: z.enum(['yes', 'no', '']).default('no').optional(),
   carportLength: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Length must be positive").optional()),
   carportWidth: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Width must be positive").optional()),
-  rvPadPresent: z.boolean().default(false).optional(),
+  rvPadPresent: z.enum(['yes', 'no', '']).default('no').optional(),
   rvPadLength: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Length must be positive").optional()),
   rvPadWidth: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Width must be positive").optional()),
   
@@ -121,9 +120,9 @@ export const propertySchema = z.object({
   fireplaceTypeGas: z.boolean().default(false).optional(),
   fireplaceFeaturesLogs: z.boolean().default(false).optional(),
   fireplaceFeaturesElectricStarter: z.boolean().default(false).optional(),
-  fireplaceVaultedCeilings: z.boolean().default(false).optional(), // Assumed near fireplace
+  fireplaceVaultedCeilings: z.boolean().default(false).optional(), 
   
-  programmableThermostat: z.boolean().default(false).optional(), // General home feature
+  programmableThermostat: z.boolean().default(false).optional(), 
 
   waterHeater: z.enum(['gas', 'electric', 'tankless', 'none', '']).default('').optional(),
   acType: z.enum(['gas', 'electric', 'window_units', 'mini_split', 'other', 'none', '']).default('').optional(),
@@ -174,3 +173,4 @@ export const propertySchema = z.object({
 });
 
 export type PropertyFormData = z.infer<typeof propertySchema>;
+

@@ -54,10 +54,10 @@ export function PropertyForm() {
       hasHOA: false,
       hoaDues: undefined,
       rooms: [],
-      carportPresent: false,
+      carportPresent: 'no', // Updated default
       carportLength: undefined,
       carportWidth: undefined,
-      rvPadPresent: false,
+      rvPadPresent: 'no', // Updated default
       rvPadLength: undefined,
       rvPadWidth: undefined,
       flooringTypes: [],
@@ -235,3 +235,4 @@ export function PropertyForm() {
     </FormProvider>
   );
 }
+
