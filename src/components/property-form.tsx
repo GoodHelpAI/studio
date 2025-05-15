@@ -36,6 +36,9 @@ const steps = [
   { id: 7, title: 'Review & Submit', component: ReviewStep, fields: [] },
 ];
 
+// TODO: Replace this with your actual n8n webhook URL
+const N8N_WEBHOOK_URL = 'YOUR_N8N_WEBHOOK_URL_HERE'; 
+
 function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
   let messages: string[] = [];
   if (!errorsObject) return messages;
@@ -85,6 +88,7 @@ function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
 
 export function PropertyForm() {
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const methods = useForm<PropertyFormData>({
@@ -139,13 +143,59 @@ export function PropertyForm() {
 
   const { handleSubmit, trigger, formState: { errors }, setError, clearErrors } = methods;
 
-  const processForm: SubmitHandler<PropertyFormData> = (data) => {
-    console.log("Property Data JSON:", JSON.stringify(data, null, 2));
-    toast({
-      title: "Property Submitted!",
-      description: "Property data has been successfully processed and logged.",
-      variant: "default",
-    });
+  const processForm: SubmitHandler<PropertyFormData> = async (data) => {
+    setIsSubmitting(true);
+    console.log("Property Data JSON to be sent:", JSON.stringify(data, null, 2));
+
+    if (N8N_WEBHOOK_URL === 'YOUR_N8N_WEBHOOK_URL_HERE') {
+        toast({
+            title: "Webhook URL Not Configured",
+            description: "Please configure the n8n webhook URL in src/components/property-form.tsx.",
+            variant: "destructive",
+            duration: 7000,
+        });
+        setIsSubmitting(false);
+        return;
+    }
+
+    try {
+        const response = await fetch(N8N_WEBHOOK_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (response.ok) {
+            const responseData = await response.json(); // n8n usually returns a success message
+            console.log('Successfully sent to n8n:', responseData);
+            toast({
+                title: "Property Submitted!",
+                description: "Property data successfully sent to n8n workflow.",
+                variant: "default",
+            });
+        } else {
+            const errorData = await response.text();
+            console.error('Failed to send to n8n:', response.status, errorData);
+            toast({
+                title: "Submission Failed",
+                description: `Could not send data to n8n. Status: ${response.status}. Error: ${errorData || 'Unknown error'}`,
+                variant: "destructive",
+                duration: 9000,
+            });
+        }
+    } catch (error) {
+        console.error('Error submitting form to n8n:', error);
+        toast({
+            title: "Network Error",
+            description: "An error occurred while trying to send data to n8n. Please check your connection or the webhook URL.",
+            variant: "destructive",
+            duration: 9000,
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   const handleNextStep = async () => {
@@ -272,17 +322,17 @@ export function PropertyForm() {
               type="button"
               onClick={handlePreviousStep}
               variant="outline"
-              disabled={currentStep === 1}
+              disabled={currentStep === 1 || isSubmitting}
             >
               <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>
             {currentStep < steps.length ? (
-              <Button type="button" onClick={handleNextStep}>
+              <Button type="button" onClick={handleNextStep} disabled={isSubmitting}>
                 Next <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
-              <Button type="submit">
-                Submit Property <Send className="ml-2 h-4 w-4" />
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Submitting...' : 'Submit Property'} <Send className="ml-2 h-4 w-4" />
               </Button>
             )}
           </CardFooter>
