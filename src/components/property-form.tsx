@@ -10,6 +10,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, Send, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 import { BasicInfoStep } from './property-form/basic-info-step';
 import { PropertyDetailsStep } from './property-form/property-details-step';
@@ -56,6 +57,9 @@ function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
             fieldName = fieldName.replace(/^rooms\.(\d+)\.(.*)$/, (match, roomIndex, field) => {
               let readableField = field.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim();
               readableField = readableField.charAt(0).toUpperCase() + readableField.slice(1);
+              if (readableField.startsWith('Kitchen details.')) {
+                readableField = readableField.replace('Kitchen details.', 'Kitchen ');
+              }
               return `Room ${parseInt(roomIndex) + 1} ${readableField}`;
             });
           } else if (fieldName.startsWith('patios.') || fieldName.startsWith('sheds.')) {
@@ -93,6 +97,11 @@ interface HorizontalBreadcrumbProps {
 }
 
 const HorizontalBreadcrumb: React.FC<HorizontalBreadcrumbProps> = ({ currentStep, completedSteps, onStepClick }) => {
+  const activeColor = "#56667a"; // New color for active/completed states
+  const upcomingBorderColor = 'rgb(209 213 219)'; // Tailwind gray-300
+  const upcomingBgColor = 'rgb(209 213 219)'; // Tailwind gray-300
+  const upcomingTextColor = 'text-gray-500';
+
   return (
     <div className="flex items-start justify-between w-full px-2 sm:px-4 md:px-6 py-4 my-4">
       {steps.map((step, index) => {
@@ -107,9 +116,10 @@ const HorizontalBreadcrumb: React.FC<HorizontalBreadcrumbProps> = ({ currentStep
               <div
                 className={cn(
                   "text-xs sm:text-sm font-medium mb-1.5 sm:mb-2 min-h-[2.5em] flex items-center justify-center",
-                  isActive || isCompleted ? "text-blue-600" : "text-gray-500",
-                  isCompleted && "cursor-pointer hover:text-blue-700"
+                  isCompleted && !isActive && "cursor-pointer hover:opacity-75",
+                  !(isActive || isCompleted) && upcomingTextColor
                 )}
+                style={isActive || isCompleted ? { color: activeColor } : {}}
                 onClick={() => (isCompleted && !isActive) && onStepClick(step.id)}
               >
                 {step.title}
@@ -117,21 +127,24 @@ const HorizontalBreadcrumb: React.FC<HorizontalBreadcrumbProps> = ({ currentStep
               <div
                 className={cn(
                   "w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center border-2",
-                  isActive && "border-blue-600 bg-white",
-                  isCompleted && "bg-blue-600 border-blue-600 text-white",
-                  isUpcoming && "bg-gray-300 border-gray-300",
-                  isCompleted && !isActive && "cursor-pointer hover:bg-blue-700"
+                  isCompleted && "text-white", // For the checkmark icon color
+                  isCompleted && !isActive && "cursor-pointer hover:opacity-75"
                 )}
+                style={{
+                  borderColor: isActive || isCompleted ? activeColor : upcomingBorderColor,
+                  backgroundColor: isCompleted ? activeColor : (isActive ? 'white' : upcomingBgColor),
+                }}
                 onClick={() => (isCompleted && !isActive) && onStepClick(step.id)}
               >
-                {isCompleted && !isActive ? <Check size={16} /> : isCompleted && isActive ? <Check size={16} /> : null}
+                {isCompleted ? <Check size={16} /> : null}
               </div>
             </div>
             {!isLastStep && (
               <div className={cn(
-                "flex-1 h-0.5 mt-[calc(2.5em+0.75rem+0.25rem)] sm:mt-[calc(2.5em+0.875rem+0.25rem)] mx-1 sm:mx-2", // Adjust for title height + circle height/2 + margin
-                isActive || isCompleted ? "bg-blue-600" : "bg-gray-300"
-              )} />
+                "flex-1 h-0.5 mt-[calc(2.5em+0.75rem+0.25rem)] sm:mt-[calc(2.5em+0.875rem+0.25rem)] mx-1 sm:mx-2"
+              )} 
+              style={{ backgroundColor: isActive || isCompleted ? activeColor : upcomingBgColor }}
+              />
             )}
           </React.Fragment>
         );
@@ -266,16 +279,16 @@ export function PropertyForm() {
     if (currentStepConfig.title === 'Prop Details') clearErrors('hoaDues');
     if (currentStepConfig.title === 'Flooring') clearErrors('otherFlooringType');
     if (currentStepConfig.title === 'Extra Details') clearErrors('acOtherType');
-    if (currentStepConfig.title === 'Room Specs') {
-      const rooms = getValues('rooms');
-      rooms?.forEach((_room, index) => {
+    
+    const rooms = getValues('rooms');
+    if (currentStepConfig.title === 'Room Specs' && rooms) {
+      rooms.forEach((_room, index) => {
         clearErrors(`rooms.${index}.roomType` as const);
         clearErrors(`rooms.${index}.length` as const);
         clearErrors(`rooms.${index}.width` as const);
         clearErrors(`rooms.${index}.garageLength` as const);
         clearErrors(`rooms.${index}.garageWidth` as const);
         clearErrors(`rooms.${index}.garageCarCount` as const);
-        // Clear kitchen errors too if applicable
         Object.keys(getValues(`rooms.${index}.kitchenDetails`) || {}).forEach(k => {
             clearErrors(`rooms.${index}.kitchenDetails.${k}` as any);
         });
@@ -303,20 +316,22 @@ export function PropertyForm() {
         customValidationPassed = false;
       }
     }
-    if (currentStepConfig.title === 'Room Specs') {
-      const rooms = getValues('rooms');
-      rooms?.forEach((room, index) => {
+    if (currentStepConfig.title === 'Room Specs' && rooms) {
+      rooms.forEach((room, index) => {
          if (!room.roomType || room.roomType.trim() === '') {
             setError(`rooms.${index}.roomType` as const, { type: 'manual', message: 'Room type is required.' });
             customValidationPassed = false;
         }
-        if (room.roomType && (room.length === undefined || room.length <= 0)) {
-             setError(`rooms.${index}.length` as const, { type: 'manual', message: 'Positive length required.' });
-             customValidationPassed = false;
-        }
-        if (room.roomType && (room.width === undefined || room.width <= 0)) {
-            setError(`rooms.${index}.width` as const, { type: 'manual', message: 'Positive width required.' });
-            customValidationPassed = false;
+        // Only validate L/W for non-garage rooms if roomType is present
+        if (room.roomType && room.roomType !== 'garage') {
+            if (room.length === undefined || room.length <= 0) {
+                 setError(`rooms.${index}.length` as const, { type: 'manual', message: 'Positive length required.' });
+                 customValidationPassed = false;
+            }
+            if (room.width === undefined || room.width <= 0) {
+                setError(`rooms.${index}.width` as const, { type: 'manual', message: 'Positive width required.' });
+                customValidationPassed = false;
+            }
         }
         if (room.roomType === 'garage') {
           if (room.garageCarCount && room.garageCarCount !== 'none' && room.garageCarCount !== '') {
@@ -343,9 +358,10 @@ export function PropertyForm() {
       let toastDescription = "Please correct the errors on the current step:";
       if (collectedMessages.length > 0) {
         toastDescription += "\n\n- " + collectedMessages.join('\n- ');
-      } else if (!isValid && currentStepFields.length > 0) { // General message if specific errors aren't found but validation failed
+      } else if (!isValid && currentStepFields.length > 0) { 
         toastDescription += "\n\nPlease review all fields for missing or invalid entries.";
       }
+
 
       toast({
         title: "Validation Error",
@@ -363,7 +379,6 @@ export function PropertyForm() {
   };
 
   const handleBreadcrumbClick = (stepId: number) => {
-    // Allow navigation only to steps that have been completed or are before the current step
      if (completedSteps.has(stepId) || stepId < currentStep) {
       setCurrentStep(stepId);
     }
@@ -374,15 +389,14 @@ export function PropertyForm() {
   return (
     <FormProvider {...methods}>
       <Card className="w-full max-w-3xl mx-auto shadow-2xl">
-        <CardHeader className="pb-2 pt-4"> {/* Adjusted padding */}
+        <CardHeader className="pb-2 pt-4"> 
           <CardTitle
-            className="text-2xl md:text-3xl text-center font-bold" // pt-2 removed
+            className="text-2xl md:text-3xl text-center font-bold" 
             style={{ color: '#8c1c19' }} 
           >
             <div>Cudd Realty</div>
             <div>Measurement Form</div>
           </CardTitle>
-          {/* Replace text description with breadcrumb */}
            <HorizontalBreadcrumb 
             currentStep={currentStep} 
             completedSteps={completedSteps}
