@@ -10,6 +10,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, Send } from 'lucide-react';
+import Image from 'next/image';
 
 import { BasicInfoStep } from './property-form/basic-info-step';
 import { PropertyDetailsStep } from './property-form/property-details-step';
@@ -146,7 +147,7 @@ export function PropertyForm() {
     setIsSubmitting(true);
     console.log("Property Data JSON to be sent:", JSON.stringify(data, null, 2));
 
-    if (N8N_WEBHOOK_URL === 'YOUR_N8N_WEBHOOK_URL_HERE' || !N8N_WEBHOOK_URL) { // Added check for empty URL
+    if (N8N_WEBHOOK_URL === 'YOUR_N8N_WEBHOOK_URL_HERE' || !N8N_WEBHOOK_URL) {
         toast({
             title: "Webhook URL Not Configured",
             description: "Please configure the n8n webhook URL in src/components/property-form.tsx.",
@@ -167,8 +168,6 @@ export function PropertyForm() {
         });
 
         if (response.ok) {
-            //const responseData = await response.json(); // n8n might not send JSON back if "Respond Immediately"
-            // console.log('Successfully sent to n8n:', responseData);
             toast({
                 title: "Property Submitted!",
                 description: "Property data successfully sent to n8n workflow.",
@@ -252,7 +251,6 @@ export function PropertyForm() {
             setError(`rooms.${index}.roomType` as const, { type: 'manual', message: 'Room type is required.' });
             customValidationPassed = false;
         }
-        // Validate dimensions only if roomType is selected (prevents error on empty room before type selection)
         if (room.roomType && (room.length === undefined || room.length <= 0)) {
              setError(`rooms.${index}.length` as const, { type: 'manual', message: 'Positive length required.' });
              customValidationPassed = false;
@@ -289,10 +287,6 @@ export function PropertyForm() {
         toastDescription += "\n\n- " + collectedMessages.join('\n- ');
       } else if (!isValid && currentStepFields.length > 0) {
         toastDescription += "\n\nPlease review all fields for missing or invalid entries.";
-      } else if (!customValidationPassed) {
-         // If custom validation failed, getAllErrorMessages should pick up setError calls.
-         // This part might be redundant if getAllErrorMessages works perfectly.
-         // toastDescription += "\n\nPlease check highlighted fields for custom validation issues.";
       }
 
 
@@ -316,9 +310,26 @@ export function PropertyForm() {
   return (
     <FormProvider {...methods}>
       <Card className="w-full max-w-3xl mx-auto shadow-2xl">
-        <CardHeader>
-          <CardTitle className="text-2xl md:text-3xl text-center font-bold text-primary">
-            Property Pro Lister
+        <CardHeader className="relative">
+          <div className="absolute top-4 left-4">
+            {/* 
+              IMPORTANT: Ensure 'cudd-realty-logo.png' is in your /public directory.
+              Adjust width and height as needed for your logo.
+            */}
+            <Image 
+              src="/cudd-realty-logo.png" 
+              alt="Cudd Realty Logo" 
+              width={100} 
+              height={50} 
+              data-ai-hint="company logo"
+              priority 
+            />
+          </div>
+          <CardTitle 
+            className="text-2xl md:text-3xl text-center font-bold pt-16 md:pt-4"
+            style={{ color: '#8c1c19' }} // Primary brand color for title
+          >
+            Cudd Realty Measurement Form
           </CardTitle>
           <CardDescription className="text-center text-muted-foreground">
             {steps[currentStep - 1].title} - Step {currentStep} of {steps.length}
@@ -353,4 +364,3 @@ export function PropertyForm() {
     </FormProvider>
   );
 }
-
