@@ -10,7 +10,6 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, Send } from 'lucide-react';
-// Image component removed as logo is being removed
 
 import { BasicInfoStep } from './property-form/basic-info-step';
 import { PropertyDetailsStep } from './property-form/property-details-step';
@@ -55,6 +54,8 @@ function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
             fieldName = fieldName.replace(/^rooms\.(\d+)\.(.*)$/, (match, index, field) => {
               let readableField = field.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim();
               if (field === 'roomType') readableField = 'room type';
+              else if (field === 'length') readableField = 'length';
+              else if (field === 'width') readableField = 'width';
               else if (field === 'garageLength') readableField = 'garage length';
               else if (field === 'garageWidth') readableField = 'garage width';
               else if (field === 'garageCarCount') readableField = 'garage car count';
@@ -200,6 +201,7 @@ export function PropertyForm() {
     const currentStepConfig = steps[currentStep - 1];
     const currentStepFields = currentStepConfig.fields as FieldPath<PropertyFormData>[];
 
+    // Clear errors specific to the current step before re-validating
     if (currentStepConfig.title === 'Room Specifications') {
       const rooms = methods.getValues('rooms');
       rooms?.forEach((_room, index) => {
@@ -245,6 +247,7 @@ export function PropertyForm() {
             setError(`rooms.${index}.roomType` as const, { type: 'manual', message: 'Room type is required.' });
             customValidationPassed = false;
         }
+        // Only validate length/width if roomType is selected
         if (room.roomType && (room.length === undefined || room.length <= 0)) {
              setError(`rooms.${index}.length` as const, { type: 'manual', message: 'Positive length required.' });
              customValidationPassed = false;
@@ -304,9 +307,8 @@ export function PropertyForm() {
     <FormProvider {...methods}>
       <Card className="w-full max-w-3xl mx-auto shadow-2xl">
         <CardHeader>
-          {/* Logo Image component removed */}
           <CardTitle
-            className="text-2xl md:text-3xl text-center font-bold pt-4" // Adjusted padding
+            className="text-2xl md:text-3xl text-center font-bold pt-4"
             style={{ color: '#8c1c19' }} 
           >
             Cudd Realty Measurement Form
@@ -341,7 +343,7 @@ export function PropertyForm() {
               )}
             </div>
             <p className="text-xs text-muted-foreground mt-6 text-center w-full">
-              Made with GoodHelp AI
+              (/◕ヮ◕)/   Made with GoodHelpAI
             </p>
           </CardFooter>
         </form>
@@ -350,4 +352,3 @@ export function PropertyForm() {
   );
 }
 
-    
