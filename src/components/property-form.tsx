@@ -27,17 +27,17 @@ const steps = [
   { id: 4, title: 'Carport & RV Pad', component: GarageCarportStep, fields: ['carportPresent', 'carportLength', 'carportWidth', 'rvPadPresent', 'rvPadLength', 'rvPadWidth'] },
   { id: 5, title: 'Flooring', component: FlooringStep, fields: ['flooringTypes', 'otherFlooringType'] },
   { id: 6, title: 'Additional Details & Features', component: AdditionalDetailsStep, fields: [
-    'patios', 'sheds', 'hasDeck', 'fenceHeight', 'fenceMaterial', 'fenceStyle', 
+    'patios', 'sheds', 'hasDeck', 'fenceHeight', 'fenceMaterial', 'fenceStyle',
     'fireplaceCount', 'fireplaceTypeWood', 'fireplaceTypeGas', 'fireplaceFeaturesLogs', 'fireplaceFeaturesElectricStarter', 'fireplaceVaultedCeilings',
-    'programmableThermostat', 'waterHeater', 'acType', 'acOtherType', 'heatType', 
+    'programmableThermostat', 'waterHeater', 'acType', 'acOtherType', 'heatType',
     'hasPool', 'hasHotTub', 'hasSprinklers', 'hasAlarm', 'smokeDetectorCount',
-    'backyardFeatures', 'communityAmenities', 
+    'backyardFeatures', 'communityAmenities',
     'description'
   ]},
   { id: 7, title: 'Review & Submit', component: ReviewStep, fields: [] },
 ];
 
-const N8N_WEBHOOK_URL = 'https://goodhelpai-n8n.onrender.com/webhook-test/06703c6e-8f0a-415c-b55b-99f33003db26'; 
+const N8N_WEBHOOK_URL = 'https://goodhelpai-n8n.onrender.com/webhook-test/06703c6e-8f0a-415c-b55b-99f33003db26';
 
 function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
   let messages: string[] = [];
@@ -54,7 +54,7 @@ function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
           // Custom formatting for room errors to make them more readable
           if (fieldName.startsWith('rooms.')) {
             fieldName = fieldName.replace(/^rooms\.(\d+)\.(.*)$/, (match, index, field) => {
-              let readableField = field.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim(); 
+              let readableField = field.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim();
               // Specific overrides for better readability
               if (field === 'roomType') readableField = 'room type';
               else if (field === 'garageLength') readableField = 'garage length';
@@ -93,7 +93,7 @@ export function PropertyForm() {
 
   const methods = useForm<PropertyFormData>({
     resolver: zodResolver(propertySchema),
-    mode: 'onTouched', 
+    mode: 'onTouched',
     defaultValues: {
       address: '',
       city: '',
@@ -203,7 +203,7 @@ export function PropertyForm() {
   const handleNextStep = async () => {
     const currentStepConfig = steps[currentStep - 1];
     const currentStepFields = currentStepConfig.fields as FieldPath<PropertyFormData>[];
-    
+
     // Clear previous manual errors for the current step or specific fields
     if (currentStepConfig.title === 'Room Specifications') {
       const rooms = methods.getValues('rooms');
@@ -221,9 +221,9 @@ export function PropertyForm() {
     } else if (currentStepConfig.title === 'Additional Details & Features') {
         clearErrors('acOtherType');
     }
-    
+
     const isValid = currentStepFields.length > 0 ? await trigger(currentStepFields, { shouldFocus: true }) : true;
-    
+
     let customValidationPassed = true;
     // Custom validation logic after triggering standard validation
     if (currentStepConfig.title === 'Property Details') {
@@ -294,7 +294,7 @@ export function PropertyForm() {
         title: "Validation Error",
         description: <pre className="whitespace-pre-wrap text-xs">{toastDescription}</pre>,
         variant: "destructive",
-        duration: 7000, 
+        duration: 7000,
       });
     }
   };
@@ -312,20 +312,20 @@ export function PropertyForm() {
       <Card className="w-full max-w-3xl mx-auto shadow-2xl">
         <CardHeader className="relative">
           <div className="absolute top-4 left-4">
-            {/* 
+            {/*
               IMPORTANT: Ensure 'cudd-realty-logo.png' is in your /public directory.
               Adjust width and height as needed for your logo.
             */}
-            <Image 
-              src="/cudd-realty-logo.png" 
-              alt="Cudd Realty Logo" 
-              width={100} 
-              height={50} 
+            <Image
+              src="/cudd-realty-logo.png"
+              alt="Cudd Realty Logo"
+              width={100}
+              height={50}
               data-ai-hint="company logo"
-              priority 
+
             />
           </div>
-          <CardTitle 
+          <CardTitle
             className="text-2xl md:text-3xl text-center font-bold pt-16 md:pt-4"
             style={{ color: '#8c1c19' }} // Primary brand color for title
           >
