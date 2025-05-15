@@ -1,6 +1,47 @@
 
 import { z } from 'zod';
 
+const refinedOptionalFloat = z.preprocess(
+  val => {
+    const sVal = String(val).trim();
+    if (sVal === '' || val === undefined || val === null || sVal.toLowerCase() === 'undefined') {
+      return undefined;
+    }
+    const num = parseFloat(sVal);
+    return isNaN(num) ? undefined : num;
+  },
+  z.number().positive("Value must be positive").optional()
+);
+
+const refinedOptionalPositiveFloat = z.preprocess(
+  val => {
+    const sVal = String(val).trim();
+    if (sVal === '' || val === undefined || val === null || sVal.toLowerCase() === 'undefined') {
+      return undefined;
+    }
+    const num = parseFloat(sVal);
+    // For positive numbers, if it's NaN or not positive, treat as undefined for optional validation.
+    // Zod's .positive() will catch it if a non-positive number is actually entered.
+    return (isNaN(num) || num <= 0) ? undefined : num;
+  },
+  z.number().positive("Value must be a positive number").optional()
+);
+
+
+const refinedOptionalPositiveInteger = z.preprocess(
+  val => {
+    const sVal = String(val).trim();
+    if (sVal === '' || val === undefined || val === null || sVal.toLowerCase() === 'undefined') {
+      return undefined;
+    }
+    const num = parseInt(sVal, 10);
+     // For positive integers, if it's NaN or not positive, treat as undefined for optional validation.
+    return (isNaN(num) || num < 0) ? undefined : num; // min(0) means 0 is allowed
+  },
+  z.number().int().min(0, "Cannot be negative").optional()
+);
+
+
 export const KitchenDetailsSchema = z.object({
   island: z.boolean().default(false).optional(),
   raisedBar: z.boolean().default(false).optional(),
@@ -34,36 +75,30 @@ export type KitchenDetails = z.infer<typeof KitchenDetailsSchema>;
 export const RoomSchema = z.object({
   id: z.string().optional(), // for react-hook-form field array key
   roomType: z.string().min(1, "Room type is required"),
-  length: z.preprocess(
-    val => (String(val).trim() === '' ? undefined : parseFloat(String(val))),
-    z.number().positive("Length must be positive").optional()
-  ),
-  width: z.preprocess(
-    val => (String(val).trim() === '' ? undefined : parseFloat(String(val))),
-    z.number().positive("Width must be positive").optional()
-  ),
+  length: refinedOptionalPositiveFloat,
+  width: refinedOptionalPositiveFloat,
   features: z.string().optional(),
-  fan: z.enum(['yes', 'no', '']).default('no').optional(), // N/A removed, default to 'no'
+  fan: z.enum(['yes', 'no', '']).default('no').optional(),
   washerDryerHookups: z.enum(['yes', 'no', 'na', '']).default('na').optional(),
   kitchenDetails: KitchenDetailsSchema,
   garageCarCount: z.enum(['1', '2', '3', 'none', '']).default('').optional(),
   garageDoorOpeners: z.enum(['0', '1', '2', '3', 'none', '']).default('').optional(),
-  garageLength: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Length must be positive").optional()),
-  garageWidth: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Width must be positive").optional()),
+  garageLength: refinedOptionalPositiveFloat,
+  garageWidth: refinedOptionalPositiveFloat,
 });
 export type Room = z.infer<typeof RoomSchema>;
 
 export const PatioSchema = z.object({
   id: z.string().optional(),
-  length: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Length must be positive").optional()),
-  width: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Width must be positive").optional()),
+  length: refinedOptionalPositiveFloat,
+  width: refinedOptionalPositiveFloat,
 });
 export type Patio = z.infer<typeof PatioSchema>;
 
 export const ShedSchema = z.object({
   id: z.string().optional(),
-  length: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Length must be positive").optional()),
-  width: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Width must be positive").optional()),
+  length: refinedOptionalPositiveFloat,
+  width: refinedOptionalPositiveFloat,
 });
 export type Shed = z.infer<typeof ShedSchema>;
 
@@ -78,16 +113,33 @@ export const propertySchema = z.object({
 
   // Property Details (Simplified)
   overallBedrooms: z.preprocess(
-    val => parseInt(String(val), 10),
-    z.number({invalid_type_error: "Bedrooms must be a number"}).int().min(0, "Bedrooms cannot be negative")
+    val => { // Required field, so convert to NaN if not a number, let Zod catch it
+        const sVal = String(val).trim();
+        if (sVal === '' || val === undefined || val === null || sVal.toLowerCase() === 'undefined') return NaN; // Force error for required
+        const num = parseInt(sVal, 10);
+        return num; // Zod will check isNaN and int/min
+    },
+    z.number({invalid_type_error: "Total bedrooms must be a number"}).int().min(0, "Total bedrooms cannot be negative")
   ),
   overallBathrooms: z.preprocess(
-    val => parseFloat(String(val)),
-    z.number({invalid_type_error: "Bathrooms must be a number"}).min(0, "Bathrooms cannot be negative")
+    val => { // Required field
+        const sVal = String(val).trim();
+        if (sVal === '' || val === undefined || val === null || sVal.toLowerCase() === 'undefined') return NaN; // Force error for required
+        const num = parseFloat(sVal);
+        return num; // Zod will check isNaN and min
+    },
+    z.number({invalid_type_error: "Total bathrooms must be a number"}).min(0, "Total bathrooms cannot be negative")
   ),
   hasHOA: z.boolean().default(false),
   hoaDues: z.preprocess(
-    (val) => (String(val).trim() === '' ? undefined : parseFloat(String(val).replace(/[$,]/g, ''))),
+    (val) => {
+      const sVal = String(val).trim().replace(/[$,]/g, '');
+      if (sVal === '' || val === undefined || val === null || sVal.toLowerCase() === 'undefined') {
+        return undefined;
+      }
+      const num = parseFloat(sVal);
+      return isNaN(num) ? undefined : num;
+    },
     z.number({invalid_type_error: "HOA Dues must be a number"}).positive("HOA dues must be a positive number").optional()
   ),
 
@@ -96,11 +148,11 @@ export const propertySchema = z.object({
 
   // Carport, RV Pad
   carportPresent: z.enum(['yes', 'no', '']).default('no').optional(),
-  carportLength: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Length must be positive").optional()),
-  carportWidth: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Width must be positive").optional()),
+  carportLength: refinedOptionalPositiveFloat,
+  carportWidth: refinedOptionalPositiveFloat,
   rvPadPresent: z.enum(['yes', 'no', '']).default('no').optional(),
-  rvPadLength: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Length must be positive").optional()),
-  rvPadWidth: z.preprocess(val => (String(val).trim() === '' ? undefined : parseFloat(String(val))), z.number().positive("Width must be positive").optional()),
+  rvPadLength: refinedOptionalPositiveFloat,
+  rvPadWidth: refinedOptionalPositiveFloat,
   
   // Flooring
   flooringTypes: z.array(z.string()).optional(),
@@ -112,10 +164,10 @@ export const propertySchema = z.object({
   hasDeck: z.boolean().default(false).optional(),
 
   fenceHeight: z.enum(['6ft', '8ft', 'none', '']).default('').optional(),
-  fenceMaterial: z.array(z.string()).optional(), // Allow multiple fence materials
-  fenceStyle: z.array(z.string()).optional(), // Allow multiple fence styles
+  fenceMaterial: z.array(z.string()).optional(), 
+  fenceStyle: z.array(z.string()).optional(), 
 
-  fireplaceCount: z.preprocess(val => (String(val).trim() === '' ? undefined : parseInt(String(val), 10)), z.number().int().min(0, "Cannot be negative").optional()),
+  fireplaceCount: refinedOptionalPositiveInteger,
   fireplaceTypeWood: z.boolean().default(false).optional(),
   fireplaceTypeGas: z.boolean().default(false).optional(),
   fireplaceFeaturesLogs: z.boolean().default(false).optional(),
@@ -133,17 +185,15 @@ export const propertySchema = z.object({
   hasHotTub: z.boolean().default(false).optional(),
   hasSprinklers: z.boolean().default(false).optional(),
   hasAlarm: z.boolean().default(false).optional(),
-  smokeDetectorCount: z.preprocess(val => (String(val).trim() === '' ? undefined : parseInt(String(val), 10)), z.number().int().min(0, "Cannot be negative").optional()),
+  smokeDetectorCount: refinedOptionalPositiveInteger,
   
   backyardFeatures: z.array(z.string()).optional(),
   communityAmenities: z.array(z.string()).optional(),
   landscapingDescription: z.string().max(500, "Landscaping description too long").optional(),
 
-  // Features (general interior/exterior, revised)
   interiorFeatures: z.array(z.string()).optional(),
   exteriorFeatures: z.array(z.string()).optional(),
 
-  // Other
   description: z.string().max(5000, "Description is too long").optional(),
 
 }).refine(data => {
@@ -174,3 +224,4 @@ export const propertySchema = z.object({
 
 export type PropertyFormData = z.infer<typeof propertySchema>;
 
+    
