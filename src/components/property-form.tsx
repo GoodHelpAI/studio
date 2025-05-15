@@ -54,7 +54,6 @@ export function PropertyForm() {
       hasHOA: false,
       hoaDues: undefined,
       rooms: [],
-      // Garage fields removed from top level, now part of RoomSchema
       carportPresent: false,
       carportLength: undefined,
       carportWidth: undefined,
@@ -134,12 +133,11 @@ export function PropertyForm() {
         customValidationPassed = false;
       }
     }
-    // Add custom validation for rooms if needed, e.g. garage dimensions if garageCarCount > 0
     if (currentStepConfig.title === 'Room Specifications') {
       const rooms = methods.getValues('rooms');
       rooms?.forEach((room, index) => {
         if (room.roomType === 'garage') {
-          if (room.garageCarCount && room.garageCarCount !== 'none') {
+          if (room.garageCarCount && room.garageCarCount !== 'none' && room.garageCarCount !== '') {
             if (room.garageLength === undefined || room.garageLength <=0) {
                setError(`rooms.${index}.garageLength` as const, { type: 'manual', message: 'Garage length required for selected car count.' });
                customValidationPassed = false;
@@ -150,13 +148,6 @@ export function PropertyForm() {
             }
           }
         }
-        // Check kitchen details
-        if (room.roomType === 'kitchen' && room.kitchenDetails?.otherKTop && 
-            !room.kitchenDetails.corianKTop && !room.kitchenDetails.graniteKTop && 
-            !room.kitchenDetails.laminateKTop && !room.kitchenDetails.tileKTop) {
-            // This logic might be too complex or better handled by schema if "Other KTop" implies "other" was selected in a hypothetical countertop type select
-        }
-
       });
     }
 
@@ -198,7 +189,7 @@ export function PropertyForm() {
 
   const handlePreviousStep = () => {
     if (currentStep > 1) {
-      setCurrentStep((prev) => prev + 1);
+      setCurrentStep((prev) => prev - 1);
     }
   };
 
