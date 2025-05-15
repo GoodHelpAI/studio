@@ -25,7 +25,7 @@ export function ChipCheckboxGroup({ name, control, options, label }: ChipCheckbo
         name={name}
         control={control}
         render={({ field }) => (
-          <div className="flex flex-wrap gap-2 pt-2">
+          <div className="flex flex-wrap gap-x-2 gap-y-3 pt-2"> {/* Adjusted gap-y */}
             {options.map((option) => {
               const isSelected = field.value?.includes(option.id) ?? false;
               return (
@@ -64,3 +64,4 @@ export function ChipCheckboxGroup({ name, control, options, label }: ChipCheckbo
     </FormItem>
   );
 }
+

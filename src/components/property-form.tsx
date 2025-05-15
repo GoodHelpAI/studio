@@ -31,7 +31,6 @@ const steps = [
     'programmableThermostat', 'waterHeater', 'acType', 'acOtherType', 'heatType', 
     'hasPool', 'hasHotTub', 'hasSprinklers', 'hasAlarm', 'smokeDetectorCount',
     'backyardFeatures', 'communityAmenities', 
-    // 'landscapingDescription', 'interiorFeatures', 'exteriorFeatures', // Removed
     'description'
   ]},
   { id: 7, title: 'Review & Submit', component: ReviewStep, fields: [] },
@@ -49,34 +48,38 @@ function getAllErrorMessages(errorsObject: any, pathPrefix = ''): string[] {
       if (errorField) {
         if (typeof errorField.message === 'string') {
           let fieldName = currentPath;
+          // Custom formatting for room errors to make them more readable
           if (fieldName.startsWith('rooms.')) {
             fieldName = fieldName.replace(/^rooms\.(\d+)\.(.*)$/, (match, index, field) => {
               let readableField = field.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim(); 
+              // Specific overrides for better readability
               if (field === 'roomType') readableField = 'room type';
               else if (field === 'garageLength') readableField = 'garage length';
               else if (field === 'garageWidth') readableField = 'garage width';
               else if (field === 'garageCarCount') readableField = 'garage car count';
               else if (field === 'garageDoorOpeners') readableField = 'garage door openers';
+              // Capitalize first letter of the field
               return `Room ${parseInt(index) + 1} ${readableField.charAt(0).toUpperCase() + readableField.slice(1)}`;
             });
           } else {
+             // General field name formatting (capitalize first letter)
              fieldName = fieldName.replace(/([A-Z0-9])/g, ' $1').toLowerCase().trim();
              fieldName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
           }
           messages.push(`${fieldName}: ${errorField.message}`);
         } else if (Array.isArray(errorField)) {
           errorField.forEach((item, index) => {
-            if (item) { 
+            if (item) { // Check if item is not null/undefined
               messages = messages.concat(getAllErrorMessages(item, `${currentPath}.${index}`));
             }
           });
-        } else if (typeof errorField === 'object' && !errorField.type ) {
+        } else if (typeof errorField === 'object' && !errorField.type ) { // Check if it's a nested error object
           messages = messages.concat(getAllErrorMessages(errorField, currentPath));
         }
       }
     }
   }
-  return messages.filter(Boolean); 
+  return messages.filter(Boolean); // Filter out any undefined/null messages that might have slipped through
 }
 
 
@@ -130,9 +133,6 @@ export function PropertyForm() {
       smokeDetectorCount: undefined,
       backyardFeatures: [],
       communityAmenities: [],
-      // landscapingDescription: '', // Removed
-      // interiorFeatures: [], // Removed
-      // exteriorFeatures: [], // Removed
       description: '',
     },
   });
@@ -150,14 +150,16 @@ export function PropertyForm() {
 
   const handleNextStep = async () => {
     const currentStepConfig = steps[currentStep - 1];
-    const currentStepFields = currentStepConfig.fields as (keyof PropertyFormData)[];
+    const currentStepFields = currentStepConfig.fields as FieldPath<PropertyFormData>[];
     
+    // Clear previous manual errors for the current step or specific fields
     if (currentStepConfig.title === 'Room Specifications') {
       const rooms = methods.getValues('rooms');
       rooms?.forEach((_room, index) => {
         clearErrors(`rooms.${index}.garageLength` as const);
         clearErrors(`rooms.${index}.garageWidth` as const);
-        clearErrors(`rooms.${index}.roomType` as const); // Clear general room type error
+        clearErrors(`rooms.${index}.roomType` as const);
+        // Add other room-specific fields if they have manual error potential
       });
     } else if (currentStepConfig.title === 'Property Details') {
         clearErrors('hoaDues');
@@ -170,6 +172,7 @@ export function PropertyForm() {
     const isValid = currentStepFields.length > 0 ? await trigger(currentStepFields, { shouldFocus: true }) : true;
     
     let customValidationPassed = true;
+    // Custom validation logic after triggering standard validation
     if (currentStepConfig.title === 'Property Details') {
       if (methods.getValues('hasHOA') && (methods.getValues('hoaDues') === undefined || methods.getValues('hoaDues') === null || methods.getValues('hoaDues')! <= 0)) {
         setError('hoaDues', { type: 'manual', message: 'HOA dues are required if HOA is selected and must be positive.' });
@@ -191,6 +194,10 @@ export function PropertyForm() {
     if (currentStepConfig.title === 'Room Specifications') {
       const rooms = methods.getValues('rooms');
       rooms?.forEach((room, index) => {
+         if (!room.roomType || room.roomType.trim() === '') {
+            setError(`rooms.${index}.roomType` as const, { type: 'manual', message: 'Room type is required.' });
+            customValidationPassed = false;
+        }
         if (room.roomType === 'garage') {
           if (room.garageCarCount && room.garageCarCount !== 'none' && room.garageCarCount !== '') {
             if (room.garageLength === undefined || room.garageLength <=0) {
@@ -212,13 +219,20 @@ export function PropertyForm() {
         setCurrentStep((prev) => prev + 1);
       }
     } else {
+      // Collect all error messages, including from Zod and manual setError calls
       const collectedMessages = getAllErrorMessages(methods.formState.errors);
       let toastDescription = "Please correct the errors on the current step:";
       if (collectedMessages.length > 0) {
+        // Using <pre> to respect newlines in the toast
         toastDescription += "\n\n- " + collectedMessages.join('\n- ');
-      } else {
+      } else if (!isValid && currentStepFields.length > 0) {
+        // Fallback if getAllErrorMessages somehow misses something but trigger failed
         toastDescription += "\n\nPlease review all fields for missing or invalid entries.";
+      } else if (!customValidationPassed) {
+        // Fallback for custom validation errors not picked by Zod in getAllErrorMessages
+        toastDescription += "\n\nPlease check highlighted fields for custom validation issues.";
       }
+
 
       toast({
         title: "Validation Error",
@@ -259,16 +273,15 @@ export function PropertyForm() {
               onClick={handlePreviousStep}
               variant="outline"
               disabled={currentStep === 1}
-              className="px-6 py-2 md:px-8"
             >
               <ArrowLeft className="mr-2 h-4 w-4" /> Previous
             </Button>
             {currentStep < steps.length ? (
-              <Button type="button" onClick={handleNextStep} className="px-6 py-2 md:px-8">
+              <Button type="button" onClick={handleNextStep}>
                 Next <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
-              <Button type="submit" className="px-6 py-2 md:px-8">
+              <Button type="submit">
                 Submit Property <Send className="ml-2 h-4 w-4" />
               </Button>
             )}
@@ -278,3 +291,4 @@ export function PropertyForm() {
     </FormProvider>
   );
 }
+

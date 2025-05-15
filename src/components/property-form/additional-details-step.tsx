@@ -11,13 +11,12 @@ import { Button } from '@/components/ui/button';
 import { ChipCheckboxGroup } from '@/components/chip-checkbox-group';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlusCircle, XCircle, Fence, Flame, Sun, Trees, Droplet, ThermometerSun, ShieldCheck, Users, Sparkles, Construction } from 'lucide-react';
+import { PlusCircle, XCircle, Fence, Flame, Sun, Trees, Droplet, ThermometerSun, ShieldCheck, Users, Sparkles, Box } from 'lucide-react'; // Changed Construction to Box for Sheds
 import type { PropertyFormData } from '@/lib/schema';
 import {
   FENCE_HEIGHT_OPTIONS, FENCE_MATERIAL_OPTIONS, FENCE_STYLE_OPTIONS,
   FIREPLACE_COUNT_OPTIONS, WATER_HEATER_OPTIONS, AC_TYPE_OPTIONS, HEAT_TYPE_OPTIONS,
   SMOKE_DETECTOR_COUNT_OPTIONS, BACKYARD_FEATURE_OPTIONS, COMMUNITY_AMENITY_OPTIONS,
-  // INTERIOR_FEATURE_OPTIONS, EXTERIOR_FEATURE_OPTIONS // No longer used here directly
 } from '@/lib/constants';
 
 export function AdditionalDetailsStep() {
@@ -72,7 +71,7 @@ export function AdditionalDetailsStep() {
       {/* Sheds */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg"><Construction className="text-primary"/> Sheds</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-lg"><Box className="text-primary"/> Sheds</CardTitle> {/* Changed Icon */}
         </CardHeader>
         <CardContent className="space-y-4">
           {shedFields.map((field, index) => (
@@ -162,7 +161,6 @@ export function AdditionalDetailsStep() {
        <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Trees className="text-primary"/> Landscaping & Community</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          {/* Landscaping Description Field Removed */}
           <ChipCheckboxGroup control={control} name="backyardFeatures" label="Backyard Features" options={BACKYARD_FEATURE_OPTIONS} />
           <ChipCheckboxGroup control={control} name="communityAmenities" label="Community Amenities" options={COMMUNITY_AMENITY_OPTIONS} />
         </CardContent>
@@ -173,8 +171,6 @@ export function AdditionalDetailsStep() {
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Sparkles className="text-primary"/> Property Description</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-           {/* ChipCheckboxGroup for interiorFeatures removed */}
-           {/* ChipCheckboxGroup for exteriorFeatures removed */}
             <FormField
                 control={control}
                 name="description"
@@ -200,3 +196,4 @@ export function AdditionalDetailsStep() {
     </div>
   );
 }
+
