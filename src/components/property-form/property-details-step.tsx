@@ -21,7 +21,13 @@ export function PropertyDetailsStep() {
             <FormItem>
               <FormLabel>Price</FormLabel>
               <FormControl>
-                <Input type="text" placeholder="e.g., 500,000" {...field} onChange={e => field.onChange(e.target.value.replace(/[^0-9.]/g, ''))} />
+                <Input
+                  type="text"
+                  placeholder="e.g., 500,000"
+                  {...field}
+                  value={field.value ?? ''}
+                  onChange={e => field.onChange(e.target.value.replace(/[^0-9.]/g, ''))}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -34,7 +40,13 @@ export function PropertyDetailsStep() {
             <FormItem>
               <FormLabel>Square Footage (SqFt)</FormLabel>
               <FormControl>
-                <Input type="text" placeholder="e.g., 2,000" {...field} onChange={e => field.onChange(e.target.value.replace(/[^0-9]/g, ''))} />
+                <Input
+                  type="text"
+                  placeholder="e.g., 2,000"
+                  {...field}
+                  value={field.value ?? ''}
+                  onChange={e => field.onChange(e.target.value.replace(/[^0-9]/g, ''))}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -49,7 +61,7 @@ export function PropertyDetailsStep() {
             <FormItem>
               <FormLabel>Total Bedrooms</FormLabel>
               <FormControl>
-                <Input type="number" min="0" placeholder="e.g., 3" {...field} />
+                <Input type="number" min="0" placeholder="e.g., 3" {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -62,7 +74,7 @@ export function PropertyDetailsStep() {
             <FormItem>
               <FormLabel>Total Bathrooms</FormLabel>
               <FormControl>
-                <Input type="number" step="0.5" min="0" placeholder="e.g., 2.5" {...field} />
+                <Input type="number" step="0.5" min="0" placeholder="e.g., 2.5" {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -75,7 +87,7 @@ export function PropertyDetailsStep() {
             <FormItem>
               <FormLabel>Year Built</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="e.g., 1995" {...field} />
+                <Input type="number" placeholder="e.g., 1995" {...field} value={field.value ?? ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -89,7 +101,7 @@ export function PropertyDetailsStep() {
           <FormItem>
             <FormLabel>Lot Size</FormLabel>
             <FormControl>
-              <Input placeholder="e.g., 0.25 acres or 10,000 sqft" {...field} />
+              <Input placeholder="e.g., 0.25 acres or 10,000 sqft" {...field} value={field.value ?? ''} />
             </FormControl>
             <FormDescription>Enter value and unit (e.g., acres, sqft).</FormDescription>
             <FormMessage />
@@ -103,7 +115,7 @@ export function PropertyDetailsStep() {
           <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm">
             <FormControl>
               <Checkbox
-                checked={field.value}
+                checked={field.value ?? false}
                 onCheckedChange={field.onChange}
               />
             </FormControl>
@@ -121,7 +133,13 @@ export function PropertyDetailsStep() {
             <FormItem>
               <FormLabel>Monthly HOA Dues</FormLabel>
               <FormControl>
-                <Input type="text" placeholder="e.g., 150" {...field} onChange={e => field.onChange(e.target.value.replace(/[^0-9.]/g, ''))} />
+                <Input
+                  type="text"
+                  placeholder="e.g., 150"
+                  {...field}
+                  value={field.value ?? ''}
+                  onChange={e => field.onChange(e.target.value.replace(/[^0-9.]/g, ''))}
+                />
               </FormControl>
               <FormDescription>Enter the monthly amount.</FormDescription>
               <FormMessage />
